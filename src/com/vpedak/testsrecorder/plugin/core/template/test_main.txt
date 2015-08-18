@@ -1,0 +1,32 @@
+package {PACKAGE};
+
+import android.test.ActivityInstrumentationTestCase2;
+import android.test.suitebuilder.annotation.LargeTest;
+
+import static android.support.test.espresso.Espresso.onView;
+import static android.support.test.espresso.Espresso.openActionBarOverflowOrOptionsMenu;
+import static android.support.test.espresso.Espresso.openContextualActionModeOverflowMenu;
+import static android.support.test.espresso.action.ViewActions.click;
+import static android.support.test.espresso.action.ViewActions.longClick;
+import static android.support.test.espresso.matcher.ViewMatchers.withId;
+import static android.support.test.espresso.matcher.ViewMatchers.withText;
+
+@LargeTest
+public class {TEST_CLASS} extends ActivityInstrumentationTestCase2<{ACTIVITY_CLASS}> {
+
+    public {TEST_CLASS}() {
+        super({ACTIVITY_CLASS}.class);
+    }
+
+    @Override
+    public void setUp() throws Exception {
+        super.setUp();
+        // Espresso will not launch our activity for us, we must launch it via getActivity().
+        getActivity();
+    }
+
+    public void testGenerated() {
+        {BODY}
+    }
+
+}
