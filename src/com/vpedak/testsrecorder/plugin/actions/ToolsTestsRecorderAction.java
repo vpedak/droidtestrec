@@ -345,7 +345,8 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
         s = s.substring(0, s.indexOf(".jar")+4);
         s = s.substring(s.lastIndexOf(':')-1);
         return s;*/
-        return "C:/Users/vpedak/IdeaProjects/Android Tests Recorder/AndroidTestsRecorder.jar";
+        // temporary because we are starting plugin from Idea and it is not packaged in ZIP
+        return "C:/Users/vpedak/IdeaProjects/droidtestrec/AndroidTestsRecorder.jar";
     }
 
     public void testStarted() {
