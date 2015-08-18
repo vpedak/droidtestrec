@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/AndroidTestsRecorder.iml" filepath="$PROJECT_DIR$/AndroidTestsRecorder.iml" />
+      <module fileurl="file://$PROJECT_DIR$/RecordingLib/RecordingLib.iml" filepath="$PROJECT_DIR$/RecordingLib/RecordingLib.iml" />
+    </modules>
+  </component>
+</project>
