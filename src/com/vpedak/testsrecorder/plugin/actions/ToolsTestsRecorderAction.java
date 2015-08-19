@@ -202,8 +202,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
     }
 
     private void stop(AnActionEvent event) {
-        if ((this.executionChecker != null) &&
-                (this.executionChecker.getDescriptor() != null)) {
+        if (this.executionChecker != null && this.executionChecker.getDescriptor() != null && this.executionChecker.getDescriptor().getProcessHandler() != null) {
             this.executionChecker.getDescriptor().getProcessHandler().destroyProcess();
         }
 
@@ -248,7 +247,8 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
 
         this.buildFile = GradleBuildFile.get(module);
         final List<BuildFileStatement> dependencies = this.buildFile.getDependencies();
-        boolean espressoFound = false;
+
+        /*boolean espressoFound = false;
         for (BuildFileStatement statement : dependencies) {
             if ((statement instanceof Dependency)) {
                 Dependency dependency = (Dependency) statement;
@@ -263,15 +263,12 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             this.recButton.setText(RECORD);
             this.recButton.setIcon(IconLoader.getIcon("icons/rec.png"));
             return;
-        }
+        }*/
 
         Dependency dependency = findDepRecord(dependencies);
         if (dependency == null) {
-            CommandProcessor.getInstance().executeCommand(this.project, new Runnable()
-/*     */ {
-                /*     */
-                public void run()
-/*     */ {
+            CommandProcessor.getInstance().executeCommand(this.project, new Runnable() {
+                public void run() {
                     dependencies.add(new Dependency(com.android.tools.idea.gradle.parser.Dependency.Scope.COMPILE, Dependency.Type.FILES, ToolsTestsRecorderAction.this.jarPath));
                     ApplicationManager.getApplication().runWriteAction(new Runnable() {
                         public void run() {
@@ -279,7 +276,6 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
                         }
                     });
                 }
-/* 305 */
             }, null, null);
         }
 
