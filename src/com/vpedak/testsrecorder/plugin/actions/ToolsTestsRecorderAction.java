@@ -248,7 +248,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
         this.buildFile = GradleBuildFile.get(module);
         final List<BuildFileStatement> dependencies = this.buildFile.getDependencies();
 
-        /*boolean espressoFound = false;
+        boolean espressoFound = false;
         for (BuildFileStatement statement : dependencies) {
             if ((statement instanceof Dependency)) {
                 Dependency dependency = (Dependency) statement;
@@ -263,7 +263,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             this.recButton.setText(RECORD);
             this.recButton.setIcon(IconLoader.getIcon("icons/rec.png"));
             return;
-        }*/
+        }
 
         Dependency dependency = findDepRecord(dependencies);
         if (dependency == null) {
