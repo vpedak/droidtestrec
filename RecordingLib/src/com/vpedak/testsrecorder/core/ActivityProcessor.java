@@ -9,6 +9,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.CompoundButton;
 
 import com.vpedak.testsrecorder.core.events.ClickAction;
 import com.vpedak.testsrecorder.core.events.LongClickAction;
@@ -25,11 +26,13 @@ public class ActivityProcessor {
     private EventWriter eventWriter;
     private Activity activity;
     private MenuProcessor menuProcessor;
+    private CheckableProcessor checkableProcessor;
 
     public ActivityProcessor(long uniqueId) {
         this.uniqueId = uniqueId;
         eventWriter = new EventWriter(uniqueId);
         menuProcessor = new MenuProcessor(this);
+        checkableProcessor = new CheckableProcessor(this);
     }
 
     public EventWriter getEventWriter() {
@@ -135,12 +138,7 @@ public class ActivityProcessor {
                 public void onClick(View v) {
                     String viewId = resolveId(view.getId());
                     if (viewId != null) {
-                        String descr;
-                        if (view instanceof Button) {
-                            descr = "Click at button with id " + viewId;
-                        } else {
-                            descr = "Click at view with id " + viewId;
-                        }
+                        String descr = "Click at "+getWidgetName(view)+" with id " + viewId;
                         eventWriter.writeEvent(new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(viewId), new ClickAction(), descr));
 
                         finalListener.onClick(v);
@@ -157,12 +155,12 @@ public class ActivityProcessor {
                 public boolean onLongClick(View v) {
                     String viewId = resolveId(view.getId());
                     if (viewId != null) {
-                        String descr;
-                        if (view instanceof Button) {
+                        String descr = "Long click at "+getWidgetName(view)+" with id " + viewId;
+                        /*if (view instanceof Button) {
                             descr = "Long click at button with id " + viewId;
                         } else {
                             descr = "Long click at view with id " + viewId;
-                        }
+                        }*/
                         eventWriter.writeEvent(new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(viewId), new LongClickAction(), descr));
 
                         if (finalLongListener != null) {
@@ -175,6 +173,10 @@ public class ActivityProcessor {
                     }
                 }
             });
+        }
+
+        if (view instanceof CompoundButton) {
+            checkableProcessor.processClick((CompoundButton) view);
         }
     }
 
@@ -197,6 +199,10 @@ public class ActivityProcessor {
         } catch (Resources.NotFoundException e) {
             return String.valueOf(id);
         }
+    }
+
+    public String getWidgetName(View view) {
+        return view.getClass().getSimpleName();
     }
 
     static String wmFieldName;
