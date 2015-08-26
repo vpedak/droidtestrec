@@ -57,6 +57,11 @@ public class EspressoTestGenerator implements TestGenerator {
         }
     }
 
+    @Override
+    public void generateActon(StringBuilder sb, ReplaceTextAction action, Subject subject) {
+        sb.append("perform(replaceText(\""+action.getText()+"\"))");
+    }
+
     private String generateBody(List<RecordingEvent> events) {
         StringBuilder sb = new StringBuilder();
         for(RecordingEvent event : events) {

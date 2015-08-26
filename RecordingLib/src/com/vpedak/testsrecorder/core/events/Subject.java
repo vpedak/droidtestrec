@@ -9,7 +9,21 @@ public abstract class Subject {
 
     @Override
     public String toString() {
-        return super.toString();
+        return Subject.toString(this);
+    }
+
+    public static String toString(Subject subject) {
+        if (subject instanceof View) {
+            View view = (View) subject;
+            return "view=" + view.getId();
+        } else if (subject instanceof MenuItem) {
+            MenuItem menuItem = (MenuItem) subject;
+            return "menuItem=" + menuItem.getId() + "#" + menuItem.getTitle();
+        } else if (subject instanceof OptionsMenu) {
+            return "optionsMenu";
+        } else {
+            throw new RuntimeException("Unknown subject - " + subject.getClass());
+        }
     }
 
     public static Subject fromString(String str) {
@@ -25,7 +39,7 @@ public abstract class Subject {
         } else if (str.startsWith("optionsMenu")) {
             return new OptionsMenu();
         } else {
-            return null;
+            throw new RuntimeException("Unknown subject - " + str);
         }
     }
 }

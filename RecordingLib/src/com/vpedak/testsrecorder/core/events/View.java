@@ -16,9 +16,4 @@ public class View extends Subject {
     public void accept(StringBuilder sb, TestGenerator generator){
         generator.generateSubject(sb, this);
     }
-
-    @Override
-    public String toString() {
-        return "view="+id;
-    }
 }

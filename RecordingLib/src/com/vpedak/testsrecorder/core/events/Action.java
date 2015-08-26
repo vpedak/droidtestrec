@@ -10,7 +10,20 @@ public abstract class Action {
 
     @Override
     public String toString() {
-        return super.toString();
+        return Action.toString(this);
+    }
+
+    public static String toString(Action action) {
+        if (action instanceof ClickAction) {
+            return "action=click";
+        } else if (action instanceof LongClickAction) {
+            return "action=longclick";
+        } else if (action instanceof ReplaceTextAction) {
+            ReplaceTextAction replaceTextAction = (ReplaceTextAction) action;
+            return "action=replaceText#"+replaceTextAction.getText().replace(",", "#comma#");
+        } else {
+            throw new RuntimeException("Unknown action - " + action.getClass());
+        }
     }
 
     public static Action fromString(String str) {
@@ -20,8 +33,12 @@ public abstract class Action {
             return new ClickAction();
         } else if (action.equals("longclick")) {
             return  new LongClickAction();
+        } else if (action.startsWith("replaceText")) {
+            int pos = action.indexOf("#");
+            String text = action.substring(pos+1).replace("#comma#", ",");
+            return new ReplaceTextAction(text);
+        } else {
+            throw new RuntimeException("Unknown action - " + str);
         }
-
-        throw new RuntimeException("Unknown action - " + str);
     }
 }

@@ -17,4 +17,5 @@ public interface TestGenerator {
     void generateActon(StringBuilder sb, Action action, Subject subject);
     void generateActon(StringBuilder sb, ClickAction action, Subject subject);
     void generateActon(StringBuilder sb, LongClickAction action, Subject subject);
+    void generateActon(StringBuilder sb, ReplaceTextAction action, Subject subject);
 }
