@@ -10,6 +10,7 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CompoundButton;
 
@@ -31,12 +32,14 @@ public class ActivityProcessor {
     private Activity activity;
     private MenuProcessor menuProcessor;
     private CheckableProcessor checkableProcessor;
+    private AdapterViewProcessor adapterViewProcessor;
 
     public ActivityProcessor(long uniqueId) {
         this.uniqueId = uniqueId;
         eventWriter = new EventWriter(uniqueId);
         menuProcessor = new MenuProcessor(this);
         checkableProcessor = new CheckableProcessor(this);
+        adapterViewProcessor = new AdapterViewProcessor(this);
     }
 
     public EventWriter getEventWriter() {
@@ -65,46 +68,16 @@ public class ActivityProcessor {
 
         menuProcessor.processView(view);
 
-        processClick(view);
-
         if (view instanceof TextView) {
             processTextView((TextView) view);
+        } else if (view instanceof AdapterView) {
+            adapterViewProcessor.processView((AdapterView) view);
+        } else {
+            processClick(view);
         }
 
         if (view instanceof ViewGroup) {
             ViewGroup viewGroup = (ViewGroup) view;
-
-            /*ViewGroup.OnHierarchyChangeListener li = null;
-            try {
-                Field f = ViewGroup.class.getDeclaredField("mOnHierarchyChangeListener");
-                f.setAccessible(true);
-                li = (ViewGroup.OnHierarchyChangeListener) f.get(viewGroup);
-            } catch (IllegalAccessException e) {
-                Log.e("TEST", "IllegalAccessException", e);
-            } catch (NoSuchFieldException e) {
-                Log.e("TEST", "NoSuchFieldException", e);
-            }
-
-            final ViewGroup.OnHierarchyChangeListener finalLi = li;
-            viewGroup.setOnHierarchyChangeListener(new ViewGroup.OnHierarchyChangeListener() {
-                @Override
-                public void onChildViewAdded(View parent, View child) {
-                    if (finalLi != null) {
-                        finalLi.onChildViewAdded(parent, child);
-                    }
-
-                    Log.wmFieldName("TEST", "New View added - " + child.toString());
-                    processView(child);
-                }
-
-                @Override
-                public void onChildViewRemoved(View parent, View child) {
-                    if (finalLi != null) {
-                        finalLi.onChildViewRemoved(parent, child);
-                    }
-                }
-            });
-            Log.wmFieldName("TEST", "HierarchyChangeListener added for view - " + viewGroup.toString());*/
 
             for (int i = 0; i < viewGroup.getChildCount(); i++) {
                 View child = viewGroup.getChildAt(i);
@@ -184,11 +157,6 @@ public class ActivityProcessor {
                     String viewId = resolveId(view.getId());
                     if (viewId != null) {
                         String descr = "Long click at "+getWidgetName(view)+" with id " + viewId;
-                        /*if (view instanceof Button) {
-                            descr = "Long click at button with id " + viewId;
-                        } else {
-                            descr = "Long click at view with id " + viewId;
-                        }*/
                         eventWriter.writeEvent(new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(viewId), new LongClickAction(), descr));
 
                         if (finalLongListener != null) {

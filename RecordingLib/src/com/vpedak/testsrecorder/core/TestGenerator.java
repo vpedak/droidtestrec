@@ -13,6 +13,7 @@ public interface TestGenerator {
     void generateSubject(StringBuilder sb, View subject);
     void generateSubject(StringBuilder sb, OptionsMenu subject);
     void generateSubject(StringBuilder sb, MenuItem subject);
+    void generateSubject(StringBuilder sb, Data subject);
 
     void generateActon(StringBuilder sb, Action action, Subject subject);
     void generateActon(StringBuilder sb, ClickAction action, Subject subject);

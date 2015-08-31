@@ -1,5 +1,6 @@
 package com.vpedak.testsrecorder.plugin.core;
 
+import com.vpedak.testsrecorder.core.Data;
 import com.vpedak.testsrecorder.core.TestGenerator;
 import com.vpedak.testsrecorder.core.events.*;
 
@@ -44,6 +45,16 @@ public class EspressoTestGenerator implements TestGenerator {
     }
 
     @Override
+    public void generateSubject(StringBuilder sb, Data subject) {
+        if (subject.getValue() != null) {
+            sb.append("onData(allOf(is(instanceOf(").append(subject.getClassName()).append(".class)), is(\"").
+                    append(subject.getValue()).append("\"))).");
+        } else {
+            sb.append(replace(new StringBuilder(dataTemplate), "CLASS", subject.getClassName()));
+        }
+    }
+
+    @Override
     public void generateActon(StringBuilder sb, ClickAction action, Subject subject) {
         if (!(subject instanceof OptionsMenu)) {
             sb.append("perform(click())");
@@ -85,4 +96,18 @@ public class EspressoTestGenerator implements TestGenerator {
         }
         return sb;
     }
+
+
+    private String dataTemplate =
+            "onData(allOf(is(new BoundedMatcher<Object, CLASS>(CLASS.class) {" +
+            "    @Override" +
+            "    public void describeTo(Description description) {" +
+            "        description.appendText(\"with item content: \");" +
+            "    }" +
+            "    @Override" +
+            "    protected boolean matchesSafely(CLASS obj) {" +
+            "        /* TODO Implement comparision logic */" +
+            "        return false;" +
+            "    }" +
+            "}))).";
 }
