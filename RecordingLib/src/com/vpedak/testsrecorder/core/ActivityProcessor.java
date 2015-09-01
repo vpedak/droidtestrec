@@ -10,11 +10,8 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.Button;
-import android.widget.CompoundButton;
+import android.widget.*;
 
-import android.widget.TextView;
 import com.vpedak.testsrecorder.core.events.ClickAction;
 import com.vpedak.testsrecorder.core.events.LongClickAction;
 import com.vpedak.testsrecorder.core.events.RecordingEvent;
@@ -68,12 +65,12 @@ public class ActivityProcessor {
 
         menuProcessor.processView(view);
 
-        if (view instanceof TextView) {
+        processClick(view);
+
+        if (view instanceof EditText) {
             processTextView((TextView) view);
         } else if (view instanceof AdapterView) {
             adapterViewProcessor.processView((AdapterView) view);
-        } else {
-            processClick(view);
         }
 
         if (view instanceof ViewGroup) {

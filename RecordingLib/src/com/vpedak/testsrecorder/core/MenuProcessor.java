@@ -75,10 +75,14 @@ public class MenuProcessor {
         for (int i = 0; i < viewGroup.getChildCount(); i++) {
             View child = viewGroup.getChildAt(i);
 
-            if (child instanceof ActionMenuView) {
-                processActionMenuView((ActionMenuView) child);
-            } else if (child instanceof android.support.v7.widget.ActionMenuView) {
-                processSupportActionMenuView((android.support.v7.widget.ActionMenuView) child);
+            try {
+                if (child instanceof ActionMenuView) {
+                    processActionMenuView((ActionMenuView) child);
+                } else if (child instanceof android.support.v7.widget.ActionMenuView) {
+                    processSupportActionMenuView((android.support.v7.widget.ActionMenuView) child);
+                }
+            } catch (NoClassDefFoundError e) {
+                // not a error com.android.support:appcompat-v7 is not used in project
             }
         }
     }

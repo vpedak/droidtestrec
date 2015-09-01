@@ -1,5 +1,6 @@
 package com.vpedak.testsrecorder.core;
 
+import android.database.Cursor;
 import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
@@ -27,11 +28,12 @@ public class AdapterViewProcessor {
                 public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                     Object tmp = parent.getItemAtPosition(position);
 
-                    String descr = "Click at item in " + activityProcessor.getWidgetName(adapterView);
                     Data data = null;
+                    String descr = "Click at item with value '"+tmp.toString()+"' in " + activityProcessor.getWidgetName(adapterView);
                     if (tmp instanceof String) {
                         data = new Data(String.class.getName(), tmp.toString());
-                        descr += " with value '"+tmp.toString()+"'";
+                    } else if (tmp instanceof Cursor) { // CursorAdapter support
+                        data = new Data(Cursor.class.getName());
                     } else {
                         data = new Data(tmp.getClass().getName());
                     }
@@ -50,11 +52,12 @@ public class AdapterViewProcessor {
                 public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                     Object tmp = parent.getItemAtPosition(position);
 
-                    String descr = "Long click at item in " + activityProcessor.getWidgetName(adapterView);
+                    String descr = "Long click at item with value '" + tmp.toString() + "' in " + activityProcessor.getWidgetName(adapterView);
                     Data data;
                     if (tmp instanceof String) {
                         data = new Data(String.class.getName(), tmp.toString());
-                        descr += " with value '"+tmp.toString()+"'";
+                    } else if (tmp instanceof Cursor) { // CursorAdapter support
+                        data = new Data(Cursor.class.getName());
                     } else {
                         data = new Data(tmp.getClass().getName());
                     }
