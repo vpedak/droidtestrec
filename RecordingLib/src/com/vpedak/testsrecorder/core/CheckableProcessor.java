@@ -20,7 +20,7 @@ public class CheckableProcessor {
     public void processClick(final CompoundButton checkable) {
         CompoundButton.OnCheckedChangeListener listener = null;
         try {
-            Field f = View.class.getDeclaredField("mOnCheckedChangeListener");
+            Field f = CompoundButton.class.getDeclaredField("mOnCheckedChangeListener");
             f.setAccessible(true);
             listener = (CompoundButton.OnCheckedChangeListener) f.get(checkable);
         } catch (IllegalAccessException e) {
