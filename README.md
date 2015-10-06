@@ -4,3 +4,5 @@ record user interactions and then generate test class sources for [Espresso Test
 those user interactions.
 
 As result it saves developers time to write such tests. Developer can create test skeleton with this tool and then add necessary test logic.
+
+See more details at [http://droidtestlab.com/](http://droidtestlab.com/)
