@@ -1,19 +1,18 @@
 <idea-plugin version="2">
   <id>com.vpedak.testsrecorder.plugin.id</id>
   <name>Android Tests Recorder</name>
-  <version>1.0</version>
-  <vendor email="support@yourcompany.com" url="http://www.yourcompany.com">YourCompany</vendor>
+  <version>0.5 beta</version>
+  <vendor email="info@droidtestlab.com" url="http://www.droidtestlab.com">Droid Test Lab</vendor>
 
   <description><![CDATA[
-      Enter short description for your plugin here.<br>
-      <em>most HTML tags may be used</em>
+      Android Test Recorder allows you to record user interactions and generate Unit Test sources.
     ]]></description>
 
-  <change-notes><![CDATA[
+  <!-- change-notes><![CDATA[
       Add change notes here.<br>
       <em>most HTML tags may be used</em>
     ]]>
-  </change-notes>
+  </change-notes -->
 
   <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
   <idea-version since-build="131"/>

@@ -334,11 +334,25 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
         return null;
     }
 
+    /*
+        String s under unix example:
+        jar:file:/home/vpedak/.AndroidStudio1.4/config/plugins/AndroidTestsRecorder/lib/AndroidTestsRecorder.jar!/com/vpedak/testsrecorder/plugin/actions/ToolsTestsRecorderAction.class
+
+     */
     private String getJarPath() {
         String name = this.getClass().getName().replace('.', '/');
         String s = this.getClass().getResource("/" + name + ".class").toString();
+
+        //Messages.showInfoMessage(s, "info");
+
         s = s.substring(0, s.indexOf(".jar")+4);
-        s = s.substring(s.lastIndexOf(':')-1);
+
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.indexOf("win") >= 0) {
+            s = s.substring(s.lastIndexOf(':') - 1);
+        } else {
+            s = s.substring(s.indexOf("file:") + 5);
+        }
         return s;
         // temporary because we are starting plugin from Idea and it is not packaged in ZIP
         //return "C:/Users/vpedak/IdeaProjects/droidtestrec/AndroidTestsRecorder.jar";

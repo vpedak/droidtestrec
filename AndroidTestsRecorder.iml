@@ -6,13 +6,14 @@
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
     </content>
-    <orderEntry type="inheritedJdk" />
+    <orderEntry type="jdk" jdkName="Android Studio AI-141.2288178" jdkType="IDEA JDK" />
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="module" module-name="RecordingLib" exported="" />
     <orderEntry type="module-library" scope="PROVIDED">
       <library>
         <CLASSES>
           <root url="jar://C:/Program Files/Android/Android Studio/plugins/android/lib/android.jar!/" />
+          <root url="jar://$USER_HOME$/work/android-studio/plugins/android/lib/android.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
@@ -22,6 +23,7 @@
       <library>
         <CLASSES>
           <root url="jar://C:/Program Files/Android/Android Studio/plugins/Groovy/lib/Groovy.jar!/" />
+          <root url="jar://$USER_HOME$/work/android-studio/plugins/Groovy/lib/Groovy.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />
@@ -31,6 +33,7 @@
       <library>
         <CLASSES>
           <root url="jar://C:/Android/sdk/tools/lib/ddmlib.jar!/" />
+          <root url="jar://$USER_HOME$/Android/Sdk/tools/lib/ddmlib.jar!/" />
         </CLASSES>
         <JAVADOC />
         <SOURCES />

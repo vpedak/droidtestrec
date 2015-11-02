@@ -4,6 +4,10 @@
       <root url="jar://C:/Android/sdk/extras/android/support/v7/appcompat/libs/android-support-v4.jar!/" />
       <root url="jar://C:/Android/sdk/extras/android/support/v7/appcompat/libs/android-support-v7-appcompat.jar!/" />
       <root url="jar://C:/Android/sdk/platforms/android-21/android.jar!/" />
+      <root url="jar://$USER_HOME$/Android/Sdk/extras/android/m2repository/com/android/support/support-v4/19.1.0/support-v4-19.1.0.jar!/" />
+      <root url="jar://$USER_HOME$/Android/Sdk/platforms/android-23/android.jar!/" />
+      <root url="jar://$USER_HOME$/Android/Sdk/extras/android/m2repository/com/android/support/support-annotations/23.1.0/support-annotations-23.1.0.jar!/" />
+      <root url="jar://$USER_HOME$/Android/Sdk/extras/android/m2repository/com/android/support/appcompat-v7/23.1.0/classes.jar!/" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>
