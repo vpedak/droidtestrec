@@ -1,8 +1,0 @@
-<component name="ArtifactManager">
-  <artifact type="jar" name="RecordingLib:jar">
-    <output-path>$PROJECT_DIR$/out/artifacts/RecordingLib_jar</output-path>
-    <root id="archive" name="RecordingLib.jar">
-      <element id="module-output" name="RecordingLib" />
-    </root>
-  </artifact>
-</component>
