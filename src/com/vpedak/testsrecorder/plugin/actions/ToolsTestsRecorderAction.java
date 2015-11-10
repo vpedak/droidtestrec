@@ -6,6 +6,8 @@ import com.android.tools.idea.gradle.parser.Dependency;
 import com.android.tools.idea.gradle.parser.GradleBuildFile;
 import com.intellij.execution.ExecutionManager;
 import com.intellij.execution.RunManager;
+import com.intellij.execution.configurations.ConfigurationFactory;
+import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.process.ProcessHandler;
 import com.intellij.facet.FacetManager;
 import com.intellij.openapi.actionSystem.AnActionEvent;
@@ -32,8 +34,6 @@ import com.vpedak.testsrecorder.plugin.ui.EventsList;
 import com.vpedak.testsrecorder.plugin.ui.ModulesComboBoxModel;
 import org.jetbrains.android.dom.manifest.Activity;
 import org.jetbrains.android.facet.AndroidFacet;
-import org.jetbrains.android.run.testing.AndroidTestRunConfiguration;
-import org.jetbrains.android.run.testing.AndroidTestRunConfigurationType;
 
 import javax.swing.*;
 import java.awt.*;
@@ -305,15 +305,35 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             }
         });
         RunManager runManager = RunManager.getInstance(this.project);
-        AndroidTestRunConfigurationType configurationType = new AndroidTestRunConfigurationType();
-        AndroidTestRunConfiguration runConfiguration = new AndroidTestRunConfiguration(this.project, configurationType.getFactory());
+
+        ConfigurationFactory factory;
+        RunConfiguration configuration;
         String runConfigName = RUN_CONFIG_NAME + System.currentTimeMillis();
-        runConfiguration.setName(runConfigName);
-        runConfiguration.setModule(module);
-        runConfiguration.setTargetSelectionMode(org.jetbrains.android.run.TargetSelectionMode.SHOW_DIALOG);
-        runConfiguration.TESTING_TYPE = 2;
-        runConfiguration.CLASS_NAME = (packageName + "." + ANDR_TEST_CLASSNAME);
-        com.intellij.execution.RunnerAndConfigurationSettings rcs = runManager.createConfiguration(runConfiguration, configurationType.getFactory());
+        try {
+            // for Android Studio less them 1.5
+            org.jetbrains.android.run.testing.AndroidTestRunConfigurationType configurationType = new org.jetbrains.android.run.testing.AndroidTestRunConfigurationType();
+            factory = configurationType.getFactory();
+            org.jetbrains.android.run.testing.AndroidTestRunConfiguration runConfiguration = new org.jetbrains.android.run.testing.AndroidTestRunConfiguration(this.project, factory);
+            runConfiguration.setName(runConfigName);
+            runConfiguration.setModule(module);
+            runConfiguration.setTargetSelectionMode(org.jetbrains.android.run.TargetSelectionMode.SHOW_DIALOG);
+            runConfiguration.TESTING_TYPE = 2;
+            runConfiguration.CLASS_NAME = (packageName + "." + ANDR_TEST_CLASSNAME);
+            configuration = runConfiguration;
+        } catch (NoClassDefFoundError e) {
+            // for Android Studio more or equals them 1.5
+            com.android.tools.idea.run.testing.AndroidTestRunConfigurationType configurationType = new com.android.tools.idea.run.testing.AndroidTestRunConfigurationType();
+            factory = configurationType.getFactory();
+            com.android.tools.idea.run.testing.AndroidTestRunConfiguration runConfiguration = new com.android.tools.idea.run.testing.AndroidTestRunConfiguration(this.project, factory);
+            runConfiguration.setName(runConfigName);
+            runConfiguration.setModule(module);
+            runConfiguration.setTargetSelectionMode(com.android.tools.idea.run.TargetSelectionMode.SHOW_DIALOG);
+            runConfiguration.TESTING_TYPE = 2;
+            runConfiguration.CLASS_NAME = (packageName + "." + ANDR_TEST_CLASSNAME);
+            configuration = runConfiguration;
+        }
+
+        com.intellij.execution.RunnerAndConfigurationSettings rcs = runManager.createConfiguration(configuration, factory);
         rcs.setTemporary(true);
         ExecutionManager executionManager = ExecutionManager.getInstance(this.project);
         executionManager.restartRunProfile(this.project, com.intellij.execution.executors.DefaultRunExecutor.getRunExecutorInstance(), com.intellij.execution.DefaultExecutionTarget.INSTANCE, rcs, (ProcessHandler) null);
@@ -364,17 +384,15 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
         }
         return s;
         // temporary because we are starting plugin from Idea and it is not packaged in ZIP
-        //return "C:/Users/vpedak/IdeaProjects/droidtestrec/AndroidTestsRecorder.jar";
+        // return "/home/vpedak/IdeaProjects/droidtestrec/AndroidTestsRecorder.jar";
     }
 
     public void testStarted() {
         ApplicationManager.getApplication().invokeLater(new Runnable()
-/*     */ {
-            /*     */
+        {
             public void run() {
                 ToolsTestsRecorderAction.this.toolWindow.activate(null, true, true);
             }
-/* 388 */
         });
 
         eventReader.start(uniqueId);
