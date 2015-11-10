@@ -40,6 +40,7 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -352,6 +353,14 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             s = s.substring(s.lastIndexOf(':') - 1);
         } else {
             s = s.substring(s.indexOf("file:") + 5);
+        }
+
+        if (s.indexOf('%') != -1) {
+            try {
+                s = java.net.URLDecoder.decode(s, "UTF-8");
+            } catch (UnsupportedEncodingException e) {
+                System.err.println("UTF-8 is unsupported");
+            }
         }
         return s;
         // temporary because we are starting plugin from Idea and it is not packaged in ZIP
