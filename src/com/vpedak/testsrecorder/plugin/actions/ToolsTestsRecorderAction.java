@@ -16,6 +16,7 @@ import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
+import com.intellij.openapi.options.ShowSettingsUtil;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.ComboBox;
 import com.intellij.openapi.ui.Messages;
@@ -27,6 +28,7 @@ import com.intellij.openapi.wm.ToolWindowManager;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
+import com.intellij.ui.components.panels.VerticalLayout;
 import com.vpedak.testsrecorder.plugin.core.EventReader;
 import com.vpedak.testsrecorder.plugin.core.Templates;
 import com.vpedak.testsrecorder.plugin.ui.ActivitiesComboBoxModel;
@@ -36,8 +38,11 @@ import org.jetbrains.android.dom.manifest.Activity;
 import org.jetbrains.android.facet.AndroidFacet;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -160,10 +165,37 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
 
             com.intellij.ui.content.Content toolContent = this.toolWindow.getContentManager().getFactory().createContent(panel, "", false);
             this.toolWindow.getContentManager().addContent(toolContent);
+
+            new CheckNewVersionThread(this).start();
         }
         this.toolWindow.activate(null, true, true);
     }
 
+    public void showNewVersionAvailable(String version) {
+        final JPanel tmp = new JPanel(new VerticalLayout(5));
+        tmp.setBorder(new EmptyBorder(10, 10, 20, 10));
+        JLabel label1 = new JLabel("<html> New version "+version+" of Android Test Recorder is available <a href=\"\">click here</a> to install.</html>");
+        label1.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                ShowSettingsUtil.getInstance().showSettingsDialog(project, "Plugins");
+            }
+        });
+        label1.setHorizontalAlignment(JLabel.CENTER);
+        tmp.add(label1);
+        JLabel label2 = new JLabel("<html> Or <a href=\"\">click here</a> to hide this message.</html>");
+        label2.setHorizontalAlignment(JLabel.CENTER);
+        label2.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                panel.remove(tmp);
+                panel.repaint();
+            }
+        });
+        tmp.add(label2);
+        panel.add(tmp, "South");
+        panel.repaint();
+    }
     private void fillActivities(ModulesComboBoxModel.ModuleWrapper module) {
         List<Activity> activities = Collections.emptyList();
         Activity selected = null;
@@ -361,7 +393,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
 
      */
     private String getJarPath() {
-        String name = this.getClass().getName().replace('.', '/');
+        /*String name = this.getClass().getName().replace('.', '/');
         String s = this.getClass().getResource("/" + name + ".class").toString();
 
         //Messages.showInfoMessage(s, "info");
@@ -382,9 +414,9 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
                 System.err.println("UTF-8 is unsupported");
             }
         }
-        return s;
+        return s;*/
         // temporary because we are starting plugin from Idea and it is not packaged in ZIP
-        // return "/home/vpedak/IdeaProjects/droidtestrec/AndroidTestsRecorder.jar";
+        return "/home/vpedak/IdeaProjects/droidtestrec/AndroidTestsRecorder.jar";
     }
 
     public void testStarted() {
