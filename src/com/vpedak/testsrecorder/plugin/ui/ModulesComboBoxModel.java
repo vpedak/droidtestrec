@@ -1,7 +1,6 @@
 package com.vpedak.testsrecorder.plugin.ui;
 
 import com.intellij.openapi.module.Module;
-import com.intellij.ui.AbstractCollectionComboBoxModel;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;

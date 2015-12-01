@@ -41,11 +41,13 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
+import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -157,6 +159,30 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
 
             fillActivities(currentModule == null ? null : new ModulesComboBoxModel.ModuleWrapper(currentModule));
 
+            JButton helpButton = new JButton(IconLoader.getIcon("icons/help.png"));
+            helpButton.setToolTipText("Help");
+            helpButton.addActionListener(new AbstractAction() {
+                public void actionPerformed(ActionEvent e) {
+                    openHelpWindow();
+                }
+            });
+            toolBar.add(helpButton);
+
+            KeyboardFocusManager keyManager=KeyboardFocusManager.getCurrentKeyboardFocusManager();
+            keyManager.addKeyEventDispatcher(new KeyEventDispatcher() {
+                @Override
+                public boolean dispatchKeyEvent(KeyEvent e) {
+                    if(e.getID()==KeyEvent.KEY_PRESSED && e.getKeyCode()==112){ // F1
+                        if (toolWindow.isActive()) {
+                            openHelpWindow();
+                            return true;
+                        }
+                    }
+                    return false;
+                }
+
+            });
+
             panel.setToolbar(toolBar);
 
             label = new JLabel("Select Module and Activity to start recording.");
@@ -169,6 +195,17 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             new CheckNewVersionThread(this).start();
         }
         this.toolWindow.activate(null, true, true);
+    }
+
+    private void openHelpWindow() {
+        Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
+        if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
+            try {
+                desktop.browse(new URL("http://droidtestlab.com/help").toURI());
+            } catch (Exception ex) {
+                ex.printStackTrace();
+            }
+        }
     }
 
     public void showNewVersionAvailable(String version) {
@@ -393,7 +430,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
 
      */
     private String getJarPath() {
-        /*String name = this.getClass().getName().replace('.', '/');
+        String name = this.getClass().getName().replace('.', '/');
         String s = this.getClass().getResource("/" + name + ".class").toString();
 
         //Messages.showInfoMessage(s, "info");
@@ -414,9 +451,9 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
                 System.err.println("UTF-8 is unsupported");
             }
         }
-        return s;*/
+        return s;
         // temporary because we are starting plugin from Idea and it is not packaged in ZIP
-        return "/home/vpedak/IdeaProjects/droidtestrec/AndroidTestsRecorder.jar";
+        //return "/home/vpedak/IdeaProjects/droidtestrec/AndroidTestsRecorder.jar";
     }
 
     public void testStarted() {

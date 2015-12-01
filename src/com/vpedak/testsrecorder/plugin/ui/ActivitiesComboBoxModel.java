@@ -1,6 +1,5 @@
 package com.vpedak.testsrecorder.plugin.ui;
 
-import com.intellij.ui.AbstractCollectionComboBoxModel;
 import org.jetbrains.android.dom.manifest.Activity;
 import org.jetbrains.annotations.NotNull;
 
