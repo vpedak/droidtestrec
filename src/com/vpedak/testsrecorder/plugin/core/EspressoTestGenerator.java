@@ -6,6 +6,7 @@ import com.vpedak.testsrecorder.core.events.*;
 
 import java.util.List;
 
+
 public class EspressoTestGenerator implements TestGenerator {
     @Override
     public String generate(String activityClassName, String testClassName, String packageName, List<RecordingEvent> events) {
@@ -110,4 +111,11 @@ public class EspressoTestGenerator implements TestGenerator {
             "        return false;" +
             "    }" +
             "}))).";
+
+    /* TODO: If need it is possible to access List or Grids by position:
+    onData(allOf(is(instanceOf(<DATA>.class))))
+            .inAdapterView(withId(R.<LIST_GRID_ID>))
+            .atPosition(0)
+    .perform(click());
+    */
 }

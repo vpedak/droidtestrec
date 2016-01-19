@@ -10,6 +10,7 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.*;
 
 import com.vpedak.testsrecorder.core.events.ClickAction;
@@ -59,6 +60,7 @@ public class ActivityProcessor {
     }
 
     private void processView(View view) {
+
         if (allViews.contains(view)) {
             return;
         }
@@ -91,15 +93,17 @@ public class ActivityProcessor {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
             }
+
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 String id = resolveId(view.getId());
                 if (id != null) {
                     String text = view.getText().toString();
-                    String descr = "Set text to '"+text+"' in "+getWidgetName(view)+" with id "+ id;
-                    eventWriter.addDelayedEvent(id, new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(id),new ReplaceTextAction(text), descr));
+                    String descr = "Set text to '" + text + "' in " + getWidgetName(view) + " with id " + id;
+                    eventWriter.addDelayedEvent(id, new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(id), new ReplaceTextAction(text), descr));
                 }
             }
+
             @Override
             public void afterTextChanged(Editable s) {
             }
@@ -136,8 +140,19 @@ public class ActivityProcessor {
                 public void onClick(View v) {
                     String viewId = resolveId(view.getId());
                     if (viewId != null) {
-                        String descr = "Click at "+getWidgetName(view)+" with id " + viewId;
-                        eventWriter.writeEvent(new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(viewId), new ClickAction(), descr));
+
+                        AdapterView adapterView = getAdaptedView(view);
+
+                        Log.d("TEST123", "Adapter-"+adapterView+", view-"+view+", v-"+v);
+
+                        if (adapterView != null) {
+                            // view is inside adapter view
+                            int pos = adapterView.getPositionForView(view);
+                            AdapterViewProcessor.generateClickEvent(ActivityProcessor.this, pos, adapterView);
+                        } else {
+                            String descr = "Click at " + getWidgetName(view) + " with id " + viewId;
+                            eventWriter.writeEvent(new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(viewId), new ClickAction(), descr));
+                        }
 
                         finalListener.onClick(v);
                         processViews(getWMViews());
@@ -153,8 +168,17 @@ public class ActivityProcessor {
                 public boolean onLongClick(View v) {
                     String viewId = resolveId(view.getId());
                     if (viewId != null) {
-                        String descr = "Long click at "+getWidgetName(view)+" with id " + viewId;
-                        eventWriter.writeEvent(new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(viewId), new LongClickAction(), descr));
+
+                        AdapterView adapterView = getAdaptedView(view);
+
+                        if (adapterView != null) {
+                            // view is inside adapter view
+                            int pos = adapterView.getPositionForView(view);
+                            AdapterViewProcessor.generateLongClickEvent(ActivityProcessor.this, pos, adapterView);
+                        } else {
+                            String descr = "Long click at " + getWidgetName(view) + " with id " + viewId;
+                            eventWriter.writeEvent(new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(viewId), new LongClickAction(), descr));
+                        }
 
                         if (finalLongListener != null) {
                             return finalLongListener.onLongClick(v);
@@ -171,6 +195,17 @@ public class ActivityProcessor {
         if (view instanceof CompoundButton) {
             checkableProcessor.processClick((CompoundButton) view);
         }
+    }
+
+    private AdapterView getAdaptedView(View view) {
+        ViewParent parent = view.getParent();
+        while (parent != null) {
+            if (parent instanceof AdapterView) {
+                return (AdapterView) parent;
+            }
+            parent = parent.getParent();
+        }
+        return null;
     }
 
     @Nullable
