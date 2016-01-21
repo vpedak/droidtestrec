@@ -1,6 +1,7 @@
 package com.vpedak.testsrecorder.core;
 
 import android.app.Activity;
+import android.app.Instrumentation;
 import android.content.res.Resources;
 import android.os.Build;
 import android.support.annotation.NonNull;
@@ -8,15 +9,22 @@ import android.support.annotation.Nullable;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.*;
 
+import com.vpedak.testsrecorder.core.events.Action;
 import com.vpedak.testsrecorder.core.events.ClickAction;
 import com.vpedak.testsrecorder.core.events.LongClickAction;
 import com.vpedak.testsrecorder.core.events.RecordingEvent;
 import com.vpedak.testsrecorder.core.events.ReplaceTextAction;
+import com.vpedak.testsrecorder.core.events.SwipeDownAction;
+import com.vpedak.testsrecorder.core.events.SwipeLeftAction;
+import com.vpedak.testsrecorder.core.events.SwipeRightAction;
+import com.vpedak.testsrecorder.core.events.SwipeUpAction;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -24,6 +32,7 @@ import java.util.List;
 
 public class ActivityProcessor {
     private long uniqueId;
+    private final Instrumentation instrumentation;
     public static final String ANDRIOD_TEST_RECORDER = "Andriod Test Recorder";
     private List<View> allViews = new ArrayList<View>();
     private EventWriter eventWriter;
@@ -32,8 +41,12 @@ public class ActivityProcessor {
     private CheckableProcessor checkableProcessor;
     private AdapterViewProcessor adapterViewProcessor;
 
-    public ActivityProcessor(long uniqueId) {
+    private static final int SWIPE_THRESHOLD = 100;
+    private static final int SWIPE_VELOCITY_THRESHOLD = 100;
+
+    public ActivityProcessor(long uniqueId, Instrumentation instrumentation) {
         this.uniqueId = uniqueId;
+        this.instrumentation = instrumentation;
         eventWriter = new EventWriter(uniqueId);
         menuProcessor = new MenuProcessor(this);
         checkableProcessor = new CheckableProcessor(this);
@@ -69,6 +82,8 @@ public class ActivityProcessor {
 
         processClick(view);
 
+        processTouch(view);
+
         if (view instanceof EditText) {
             processTextView((TextView) view);
         } else if (view instanceof AdapterView) {
@@ -87,6 +102,140 @@ public class ActivityProcessor {
 
         allViews.add(view);
     }
+
+    private void processTouch(final View view) {
+        View.OnTouchListener listener = null;
+        try {
+            Field f = View.class.getDeclaredField("mListenerInfo");
+            f.setAccessible(true);
+            Object li = f.get(view);
+
+            if (li != null) {
+                Field f2 = li.getClass().getDeclaredField("mOnTouchListener");
+                f2.setAccessible(true);
+                listener = (View.OnTouchListener) f2.get(li);
+
+            }
+        } catch (IllegalAccessException e) {
+            Log.e(ANDRIOD_TEST_RECORDER, "IllegalAccessException", e);
+        } catch (NoSuchFieldException e) {
+            Log.e(ANDRIOD_TEST_RECORDER, "NoSuchFieldException", e);
+        }
+
+        final GestureDetectorRunnable runnable = new GestureDetectorRunnable(view);
+        activity.runOnUiThread(runnable);
+
+        final View.OnTouchListener finalListener = listener;
+        view.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                boolean result = false;
+
+                if (finalListener != null) {
+                    result = finalListener.onTouch(v, event);
+                } else {
+                    result = view.onTouchEvent(event);
+                }
+
+                if (result) {
+                    runnable.getGestureDetector().onTouchEvent(event);
+                }
+
+                return result;
+            }
+        });
+    }
+
+    private class GestureDetectorRunnable implements Runnable {
+        private View view;
+        private GestureDetector gestureDetector;
+
+        public GestureDetectorRunnable(View view) {
+            this.view = view;
+        }
+
+        public GestureDetector getGestureDetector() {
+            return gestureDetector;
+        }
+
+        @Override
+        public void run() {
+            gestureDetector = new GestureDetector(instrumentation.getTargetContext(), new GestureDetector.OnGestureListener() {
+                @Override
+                public boolean onDown(MotionEvent e) {
+                    return false;
+                }
+
+                @Override
+                public void onShowPress(MotionEvent e) {
+                }
+
+                @Override
+                public boolean onSingleTapUp(MotionEvent e) {
+                    return false;
+                }
+
+                @Override
+                public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                    return false;
+                }
+
+                @Override
+                public void onLongPress(MotionEvent e) {
+                }
+
+                @Override
+                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                    Action action = null;
+                    String str = null;
+
+                    float diffY = e2.getY() - e1.getY();
+                    float diffX = e2.getX() - e1.getX();
+                    if (Math.abs(diffX) > Math.abs(diffY)) {
+                        if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                            if (diffX > 0) {
+                                // swipe right
+                                action = new SwipeRightAction();
+                                str = "Swipe right at ";
+                            } else {
+                                // swipe left
+                                action = new SwipeLeftAction();
+                                str = "Swipe left at ";
+                            }
+                        }
+                    } else if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
+                        if (diffY > 0) {
+                            // swipe down
+                            action = new SwipeDownAction();
+                            str = "Swipe down at ";
+                        } else {
+                            // swipe up
+                            action = new SwipeUpAction();
+                            str = "Swipe up at ";
+                        }
+                    }
+
+                    if (action != null) {
+                        String viewId = resolveId(view.getId());
+                        if (viewId != null) {
+                            AdapterView adapterView = getAdaptedView(view);
+
+                            if (adapterView != null) {
+                                // view is inside adapter view
+                                int pos = adapterView.getPositionForView(view);
+                                AdapterViewProcessor.generateEvent(ActivityProcessor.this, pos, adapterView, str+"item ", action);
+                            } else {
+                                String descr = str + getWidgetName(view) + " with id " + viewId;
+                                eventWriter.writeEvent(new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(viewId), action, descr));
+                            }
+                        }
+                    }
+
+                    return false;
+                }
+            });
+        }
+    };
 
     private void processTextView(final TextView view) {
         view.addTextChangedListener(new TextWatcher() {
@@ -142,8 +291,6 @@ public class ActivityProcessor {
                     if (viewId != null) {
 
                         AdapterView adapterView = getAdaptedView(view);
-
-                        Log.d("TEST123", "Adapter-"+adapterView+", view-"+view+", v-"+v);
 
                         if (adapterView != null) {
                             // view is inside adapter view

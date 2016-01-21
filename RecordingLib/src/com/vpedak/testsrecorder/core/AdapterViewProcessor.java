@@ -1,15 +1,10 @@
 package com.vpedak.testsrecorder.core;
 
 import android.database.Cursor;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
-import android.widget.CompoundButton;
-import com.vpedak.testsrecorder.core.events.ClickAction;
-import com.vpedak.testsrecorder.core.events.LongClickAction;
-import com.vpedak.testsrecorder.core.events.RecordingEvent;
 
-import java.lang.reflect.Field;
+import com.vpedak.testsrecorder.core.events.*;
 
 public class AdapterViewProcessor {
     private ActivityProcessor activityProcessor;
@@ -52,33 +47,29 @@ public class AdapterViewProcessor {
     }
 
     public static void generateClickEvent(ActivityProcessor activityProcessor, int position, AdapterView adapterView) {
-        Object tmp = adapterView.getItemAtPosition(position);
-
-        Data data = null;
-        String descr = "Click at item with value '"+tmp.toString()+"' in " + activityProcessor.getWidgetName(adapterView);
-        if (tmp instanceof String) {
-            data = new Data(String.class.getName(), tmp.toString());
-        } else if (tmp instanceof Cursor) { // CursorAdapter support
-            data = new Data(Cursor.class.getName());
-        } else {
-            data = new Data(tmp.getClass().getName());
-        }
-        activityProcessor.getEventWriter().writeEvent(new RecordingEvent(data, new ClickAction(), descr));
+        generateEvent(activityProcessor, position, adapterView, "Click at item", new ClickAction());
     }
 
     public static void generateLongClickEvent(ActivityProcessor activityProcessor, int position, AdapterView adapterView) {
-        Object tmp = adapterView.getItemAtPosition(position);
-
-        String descr = "Long click at item with value '" + tmp.toString() + "' in " + activityProcessor.getWidgetName(adapterView);
-        Data data;
-        if (tmp instanceof String) {
-            data = new Data(String.class.getName(), tmp.toString());
-        } else if (tmp instanceof Cursor) { // CursorAdapter support
-            data = new Data(Cursor.class.getName());
-        } else {
-            data = new Data(tmp.getClass().getName());
-        }
-        activityProcessor.getEventWriter().writeEvent(new RecordingEvent(data, new LongClickAction(), descr));
+        generateEvent(activityProcessor, position, adapterView, "Long click at item", new LongClickAction());
     }
 
+    public static void generateEvent(ActivityProcessor activityProcessor, int position, AdapterView adapterView, String str, Action action) {
+        String adapterId = activityProcessor.resolveId(adapterView.getId());
+
+        if (adapterId != null) {
+            Object tmp = adapterView.getItemAtPosition(position);
+
+            String descr = str + " with value '" + tmp.toString() + "' in " + activityProcessor.getWidgetName(adapterView);
+            Data data;
+            if (tmp instanceof String) {
+                data = new Data(adapterId, String.class.getName(), tmp.toString());
+            } else if (tmp instanceof Cursor) { // CursorAdapter support
+                data = new Data(adapterId, Cursor.class.getName());
+            } else {
+                data = new Data(adapterId, tmp.getClass().getName());
+            }
+            activityProcessor.getEventWriter().writeEvent(new RecordingEvent(data, action, descr));
+        }
+    }
 }

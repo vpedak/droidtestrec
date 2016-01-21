@@ -22,7 +22,7 @@ public class ActivityListener {
         this.activity = activity;
         this.uniqueId = uniqueId;
 
-        activityProcessor = new ActivityProcessor(uniqueId);
+        activityProcessor = new ActivityProcessor(uniqueId, instr);
 
         activityProcessor.processActivity(activity);
     }

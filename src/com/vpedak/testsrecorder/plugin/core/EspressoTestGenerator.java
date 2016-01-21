@@ -1,6 +1,6 @@
 package com.vpedak.testsrecorder.plugin.core;
 
-import com.vpedak.testsrecorder.core.Data;
+import com.vpedak.testsrecorder.core.events.Data;
 import com.vpedak.testsrecorder.core.TestGenerator;
 import com.vpedak.testsrecorder.core.events.*;
 
@@ -49,9 +49,13 @@ public class EspressoTestGenerator implements TestGenerator {
     public void generateSubject(StringBuilder sb, Data subject) {
         if (subject.getValue() != null) {
             sb.append("onData(allOf(is(instanceOf(").append(subject.getClassName()).append(".class)), is(\"").
-                    append(subject.getValue()).append("\"))).");
+                    append(subject.getValue()).append("\"))).inAdapterView(withId(").append(subject.getAdapterId()).
+                    append(")).");
         } else {
-            sb.append(replace(new StringBuilder(dataTemplate), "CLASS", subject.getClassName()));
+            StringBuilder tmp = new StringBuilder(dataTemplate);
+            replace( tmp, "CLASS", subject.getClassName());
+            replace( tmp, "ADAPTER_ID", subject.getAdapterId());
+            sb.append(tmp);
         }
     }
 
@@ -72,6 +76,26 @@ public class EspressoTestGenerator implements TestGenerator {
     @Override
     public void generateActon(StringBuilder sb, ReplaceTextAction action, Subject subject) {
         sb.append("perform(replaceText(\""+action.getText()+"\"))");
+    }
+
+    @Override
+    public void generateActon(StringBuilder sb, SwipeUpAction action, Subject subject) {
+        sb.append("perform(swipeUp())");
+    }
+
+    @Override
+    public void generateActon(StringBuilder sb, SwipeDownAction action, Subject subject) {
+        sb.append("perform(swipeDown())");
+    }
+
+    @Override
+    public void generateActon(StringBuilder sb, SwipeLeftAction action, Subject subject) {
+        sb.append("perform(swipeLeft())");
+    }
+
+    @Override
+    public void generateActon(StringBuilder sb, SwipeRightAction action, Subject subject) {
+        sb.append("perform(swipeRight())");
     }
 
     private String generateBody(List<RecordingEvent> events) {
@@ -100,21 +124,21 @@ public class EspressoTestGenerator implements TestGenerator {
 
 
     private String dataTemplate =
+            "\t// see details at http://droidtestlab.com/adapterView.html\n" +
             "onData(allOf(is(new BoundedMatcher<Object, CLASS>(CLASS.class) {" +
             "    @Override" +
             "    public void describeTo(Description description) {" +
-            "        description.appendText(\"with item content: \");" +
             "    }" +
             "    @Override" +
-            "    protected boolean matchesSafely(CLASS obj) {" +
-            "        /* TODO Implement comparision logic */" +
+            "    protected boolean matchesSafely(CLASS obj) {\n" +
+            "        /* TODO Implement comparison logic */\n" +
             "        return false;" +
             "    }" +
-            "}))).";
+            "}))).inAdapterView(withId(ADAPTER_ID)).";
 
     /* TODO: If need it is possible to access List or Grids by position:
     onData(allOf(is(instanceOf(<DATA>.class))))
-            .inAdapterView(withId(R.<LIST_GRID_ID>))
+            .inAdapterView(withId(<LIST_GRID_ID>))
             .atPosition(0)
     .perform(click());
     */

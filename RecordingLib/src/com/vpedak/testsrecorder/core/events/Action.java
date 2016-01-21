@@ -21,6 +21,14 @@ public abstract class Action {
         } else if (action instanceof ReplaceTextAction) {
             ReplaceTextAction replaceTextAction = (ReplaceTextAction) action;
             return "action=replaceText#"+replaceTextAction.getText().replace(",", "#comma#");
+        } else if (action instanceof SwipeUpAction) {
+            return "action=swipeup";
+        } else if (action instanceof SwipeDownAction) {
+            return "action=swipedown";
+        } else if (action instanceof SwipeLeftAction) {
+            return "action=swipeleft";
+        } else if (action instanceof SwipeRightAction) {
+            return "action=swiperight";
         } else {
             throw new RuntimeException("Unknown action - " + action.getClass());
         }
@@ -37,6 +45,14 @@ public abstract class Action {
             int pos = action.indexOf("#");
             String text = action.substring(pos+1).replace("#comma#", ",");
             return new ReplaceTextAction(text);
+        } else if (action.equals("swipeup")) {
+            return  new SwipeUpAction();
+        } else if (action.equals("swipedown")) {
+            return  new SwipeDownAction();
+        } else if (action.equals("swipeleft")) {
+            return  new SwipeLeftAction();
+        } else if (action.equals("swiperight")) {
+            return  new SwipeRightAction();
         } else {
             throw new RuntimeException("Unknown action - " + str);
         }
