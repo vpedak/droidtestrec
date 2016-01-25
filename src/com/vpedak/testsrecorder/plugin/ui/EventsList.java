@@ -194,6 +194,8 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
                 List<VirtualFile> roots;
                 if (testFolders.isEmpty()) {
                     roots = ModuleRootManager.getInstance(module).getSourceRoots(JavaModuleSourceRootTypes.SOURCES);
+                    removeGenerated(roots);
+
                     if (roots.isEmpty()) return;
                 } else {
                     roots = new ArrayList<VirtualFile>(testFolders);
@@ -220,6 +222,8 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
 
     protected static void checkForTestRoots(Module srcModule, Set<VirtualFile> testFolders) {
         testFolders.addAll(ModuleRootManager.getInstance(srcModule).getSourceRoots(JavaSourceRootType.TEST_SOURCE));
+
+        removeGenerated(testFolders);
         //create test in the same module
         if (!testFolders.isEmpty()) return;
 
@@ -228,6 +232,21 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
         ModuleUtilCore.collectModulesDependsOn(srcModule, modules);
         for (Module module : modules) {
             testFolders.addAll(ModuleRootManager.getInstance(module).getSourceRoots(JavaSourceRootType.TEST_SOURCE));
+        }
+
+        removeGenerated(testFolders);
+    }
+
+    private static void removeGenerated(Collection<VirtualFile> testFolders) {
+        // remove generated directories
+        for (Iterator<VirtualFile> iter = testFolders.iterator(); iter.hasNext();) {
+            VirtualFile tst = iter.next();
+
+            String url = tst.getPresentableUrl();
+
+            if (url.contains("build/generated") || url.contains("build\\generated")) {
+                iter.remove();
+            }
         }
     }
 
