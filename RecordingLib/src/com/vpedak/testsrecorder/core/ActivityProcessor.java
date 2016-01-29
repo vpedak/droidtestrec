@@ -4,7 +4,7 @@ import android.app.Activity;
 import android.app.Instrumentation;
 import android.content.res.Resources;
 import android.os.Build;
-import android.support.annotation.NonNull;
+import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -14,13 +14,18 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
-import android.widget.*;
+import android.widget.AdapterView;
+import android.widget.CompoundButton;
+import android.widget.EditText;
+import android.widget.TextView;
 
 import com.vpedak.testsrecorder.core.events.Action;
 import com.vpedak.testsrecorder.core.events.ClickAction;
 import com.vpedak.testsrecorder.core.events.LongClickAction;
+import com.vpedak.testsrecorder.core.events.ParentView;
 import com.vpedak.testsrecorder.core.events.RecordingEvent;
 import com.vpedak.testsrecorder.core.events.ReplaceTextAction;
+import com.vpedak.testsrecorder.core.events.Subject;
 import com.vpedak.testsrecorder.core.events.SwipeDownAction;
 import com.vpedak.testsrecorder.core.events.SwipeLeftAction;
 import com.vpedak.testsrecorder.core.events.SwipeRightAction;
@@ -28,13 +33,14 @@ import com.vpedak.testsrecorder.core.events.SwipeUpAction;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 
 public class ActivityProcessor {
     private long uniqueId;
     private final Instrumentation instrumentation;
-    public static final String ANDRIOD_TEST_RECORDER = "Andriod Test Recorder";
-    private List<View> allViews = new ArrayList<View>();
+    public static final String ANDRIOD_TEST_RECORDER = "Android Test Recorder";
+    private ConcurrentHashMap<View, View> allViews = new ConcurrentHashMap<View, View>();
     private EventWriter eventWriter;
     private Activity activity;
     private MenuProcessor menuProcessor;
@@ -73,8 +79,9 @@ public class ActivityProcessor {
     }
 
     private void processView(View view) {
+        View tst = allViews.putIfAbsent(view, view);
 
-        if (allViews.contains(view)) {
+        if (tst != null) {
             return;
         }
 
@@ -98,9 +105,50 @@ public class ActivityProcessor {
 
                 processView(child);
             }
-        }
 
-        allViews.add(view);
+            ViewGroup.OnHierarchyChangeListener listener = null;
+            try {
+                Field f = ViewGroup.class.getDeclaredField("mOnHierarchyChangeListener");
+                f.setAccessible(true);
+                listener = (ViewGroup.OnHierarchyChangeListener) f.get(view);
+            } catch (IllegalAccessException e) {
+                Log.e(ANDRIOD_TEST_RECORDER, "IllegalAccessException", e);
+            } catch (NoSuchFieldException e) {
+                Log.e(ANDRIOD_TEST_RECORDER, "NoSuchFieldException", e);
+            }
+            final ViewGroup.OnHierarchyChangeListener finalListener = listener;
+            viewGroup.setOnHierarchyChangeListener(new ViewGroup.OnHierarchyChangeListener() {
+                @Override
+                public void onChildViewAdded(View parent, final View child) {
+
+                    // make a delay in new view processing to make sure that all listeners will be already attached during Activity.OnCreate, etc
+                    // not sure how to make this better (to wait for listeners attachment)
+                    activity.runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            final Handler handler = new Handler();
+                            handler.postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    processView(child);
+                                }
+                            }, 200);
+                        }
+                    });
+
+                    if (finalListener != null) {
+                        finalListener.onChildViewAdded(parent, child);
+                    }
+                }
+
+                @Override
+                public void onChildViewRemoved(View parent, View child) {
+                    if (finalListener != null) {
+                        finalListener.onChildViewRemoved(parent, child);
+                    }
+                }
+            });
+        }
     }
 
     private void processTouch(final View view) {
@@ -149,12 +197,18 @@ public class ActivityProcessor {
     private class GestureDetectorRunnable implements Runnable {
         private View view;
         private GestureDetector gestureDetector;
+        private CountDownLatch latch = new CountDownLatch(1);
 
         public GestureDetectorRunnable(View view) {
             this.view = view;
         }
 
         public GestureDetector getGestureDetector() {
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
             return gestureDetector;
         }
 
@@ -186,6 +240,10 @@ public class ActivityProcessor {
 
                 @Override
                 public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                    if (e1 == null || e2 == null) {
+                        return false;
+                    }
+
                     Action action = null;
                     String str = null;
 
@@ -216,17 +274,17 @@ public class ActivityProcessor {
                     }
 
                     if (action != null) {
-                        String viewId = resolveId(view.getId());
-                        if (viewId != null) {
-                            AdapterView adapterView = getAdaptedView(view);
+                        AdapterView adapterView = getAdaptedView(view);
 
-                            if (adapterView != null) {
-                                // view is inside adapter view
-                                int pos = adapterView.getPositionForView(view);
-                                AdapterViewProcessor.generateEvent(ActivityProcessor.this, pos, adapterView, str+"item ", action);
-                            } else {
-                                String descr = str + getWidgetName(view) + " with id " + viewId;
-                                eventWriter.writeEvent(new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(viewId), action, descr));
+                        if (adapterView != null) {
+                            // view is inside adapter view
+                            int pos = adapterView.getPositionForView(view);
+                            AdapterViewProcessor.generateEvent(ActivityProcessor.this, pos, adapterView, str + "item ", action);
+                        } else {
+                            Subject subject = resolveSubject(view);
+                            if (subject != null) {
+                                String descr = str + getWidgetName(view) + generateSubjectDescription(subject);
+                                eventWriter.writeEvent(new RecordingEvent(subject, action, descr));
                             }
                         }
                     }
@@ -234,8 +292,21 @@ public class ActivityProcessor {
                     return false;
                 }
             });
+
+            latch.countDown();
         }
-    };
+    }
+
+    private String generateSubjectDescription(Subject subject) {
+        if (subject instanceof com.vpedak.testsrecorder.core.events.View) {
+            com.vpedak.testsrecorder.core.events.View view = (com.vpedak.testsrecorder.core.events.View) subject;
+            return " with id "+view.getId();
+        } else if (subject instanceof  ParentView) {
+            ParentView view = (ParentView) subject;
+            return " with child index "+view.getChildIndex()+" of parent with id "+view.getParentId();
+        }
+        return "";
+    }
 
     private void processTextView(final TextView view) {
         view.addTextChangedListener(new TextWatcher() {
@@ -245,11 +316,11 @@ public class ActivityProcessor {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                String id = resolveId(view.getId());
-                if (id != null) {
+                Subject subject = resolveSubject(view);
+                if (subject != null) {
                     String text = view.getText().toString();
-                    String descr = "Set text to '" + text + "' in " + getWidgetName(view) + " with id " + id;
-                    eventWriter.addDelayedEvent(id, new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(id), new ReplaceTextAction(text), descr));
+                    String descr = "Set text to '" + text + "' in " + getWidgetName(view) + generateSubjectDescription(subject);
+                    eventWriter.addDelayedEvent(new RecordingEvent(subject, new ReplaceTextAction(text), descr));
                 }
             }
 
@@ -283,27 +354,28 @@ public class ActivityProcessor {
         }
 
         if (view.isClickable() && listener != null) {
+
+            Log.d("123", "view - " + view + " listener - " + listener);
+
             final View.OnClickListener finalListener = listener;
             view.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    String viewId = resolveId(view.getId());
-                    if (viewId != null) {
+                    AdapterView adapterView = getAdaptedView(view);
 
-                        AdapterView adapterView = getAdaptedView(view);
-
-                        if (adapterView != null) {
-                            // view is inside adapter view
-                            int pos = adapterView.getPositionForView(view);
-                            AdapterViewProcessor.generateClickEvent(ActivityProcessor.this, pos, adapterView);
-                        } else {
-                            String descr = "Click at " + getWidgetName(view) + " with id " + viewId;
-                            eventWriter.writeEvent(new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(viewId), new ClickAction(), descr));
+                    if (adapterView != null) {
+                        // view is inside adapter view
+                        int pos = adapterView.getPositionForView(view);
+                        AdapterViewProcessor.generateClickEvent(ActivityProcessor.this, pos, adapterView);
+                    } else {
+                        Subject subject = resolveSubject(view);
+                        if (subject != null) {
+                            String descr = "Click at " + getWidgetName(view) + generateSubjectDescription(subject);
+                            eventWriter.writeEvent(new RecordingEvent(subject, new ClickAction(), descr));
                         }
-
-                        finalListener.onClick(v);
-                        processViews(getWMViews());
                     }
+                    finalListener.onClick(v);
+                    processViews(getWMViews());
                 }
             });
         }
@@ -313,25 +385,23 @@ public class ActivityProcessor {
             view.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View v) {
-                    String viewId = resolveId(view.getId());
-                    if (viewId != null) {
+                    AdapterView adapterView = getAdaptedView(view);
 
-                        AdapterView adapterView = getAdaptedView(view);
-
-                        if (adapterView != null) {
-                            // view is inside adapter view
-                            int pos = adapterView.getPositionForView(view);
-                            AdapterViewProcessor.generateLongClickEvent(ActivityProcessor.this, pos, adapterView);
-                        } else {
-                            String descr = "Long click at " + getWidgetName(view) + " with id " + viewId;
-                            eventWriter.writeEvent(new RecordingEvent(new com.vpedak.testsrecorder.core.events.View(viewId), new LongClickAction(), descr));
+                    if (adapterView != null) {
+                        // view is inside adapter view
+                        int pos = adapterView.getPositionForView(view);
+                        AdapterViewProcessor.generateLongClickEvent(ActivityProcessor.this, pos, adapterView);
+                    } else {
+                        Subject subject = resolveSubject(view);
+                        if (subject != null) {
+                            String descr = "Long click at " + getWidgetName(view) + generateSubjectDescription(subject);
+                            eventWriter.writeEvent(new RecordingEvent(subject, new LongClickAction(), descr));
                         }
 
-                        if (finalLongListener != null) {
-                            return finalLongListener.onLongClick(v);
-                        } else {
-                            return false;
-                        }
+                    }
+
+                    if (finalLongListener != null) {
+                        return finalLongListener.onLongClick(v);
                     } else {
                         return false;
                     }
@@ -352,6 +422,27 @@ public class ActivityProcessor {
             }
             parent = parent.getParent();
         }
+        return null;
+    }
+
+    @Nullable
+    public Subject resolveSubject(View view) {
+        String viewId = resolveId(view.getId());
+        if (viewId != null) {
+            return new com.vpedak.testsrecorder.core.events.View(viewId);
+        } else if (view.getParent() != null && view.getParent() instanceof ViewGroup) {
+            ViewGroup parentView = (ViewGroup) view.getParent();
+            String parentId = resolveId(parentView.getId());
+
+            if (parentId != null) {
+                for (int i = 0; i < parentView.getChildCount(); i++) {
+                    if (view.equals(parentView.getChildAt(i))) {
+                        return new ParentView(parentId, i);
+                    }
+                }
+            }
+        }
+
         return null;
     }
 

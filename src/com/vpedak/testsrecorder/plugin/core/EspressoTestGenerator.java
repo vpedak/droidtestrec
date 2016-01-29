@@ -8,6 +8,8 @@ import java.util.List;
 
 
 public class EspressoTestGenerator implements TestGenerator {
+    private boolean wasParentView = false;
+
     @Override
     public String generate(String activityClassName, String testClassName, String packageName, List<RecordingEvent> events) {
         Templates templates = Templates.getInstance();
@@ -16,6 +18,12 @@ public class EspressoTestGenerator implements TestGenerator {
         replace(sb, "{TEST_CLASS}", testClassName);
         replace(sb, "{ACTIVITY_CLASS}", activityClassName);
         replace(sb, "{BODY}", generateBody(events));
+
+        if (wasParentView) {
+            replace(sb, "{ADDITION}", "\n\n"+nthChildOfTemplate);
+        } else {
+            replace(sb, "{ADDITION}", "");
+        }
         return sb.toString();
     }
 
@@ -43,6 +51,12 @@ public class EspressoTestGenerator implements TestGenerator {
     @Override
     public void generateSubject(StringBuilder sb, MenuItem subject) {
         sb.append("onView(withText(\"").append(subject.getTitle()).append("\")).");
+    }
+
+    @Override
+    public void generateSubject(StringBuilder sb, ParentView subject) {
+        wasParentView = true;
+        sb.append("onView(nthChildOf(withId(").append(subject.getParentId()).append("), ").append(subject.getChildIndex()).append(")).");
     }
 
     @Override
@@ -122,7 +136,6 @@ public class EspressoTestGenerator implements TestGenerator {
         return sb;
     }
 
-
     private String dataTemplate =
             "\t// see details at http://droidtestlab.com/adapterView.html\n" +
             "onData(allOf(is(new BoundedMatcher<Object, CLASS>(CLASS.class) {" +
@@ -142,4 +155,21 @@ public class EspressoTestGenerator implements TestGenerator {
             .atPosition(0)
     .perform(click());
     */
+
+    private String nthChildOfTemplate =
+            "    public static Matcher<View> nthChildOf(final Matcher<View> parentMatcher, final int childPosition) {\n" +
+            "        return new TypeSafeMatcher<View>() {\n" +
+            "            @Override\n" +
+            "            public void describeTo(Description description) {\n" +
+            "            }\n" +
+            "            @Override\n" +
+            "            public boolean matchesSafely(View view) {\n" +
+            "                if (!(view.getParent() instanceof ViewGroup)) {\n" +
+            "                    return false;\n" +
+            "                }\n" +
+            "                ViewGroup group = (ViewGroup) view.getParent();\n" +
+            "                return parentMatcher.matches(group) && view.equals(group.getChildAt(childPosition));\n" +
+            "            }\n" +
+            "        };\n" +
+            "    }\n";
 }

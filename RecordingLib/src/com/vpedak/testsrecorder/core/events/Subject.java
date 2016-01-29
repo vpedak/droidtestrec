@@ -19,6 +19,9 @@ public abstract class Subject {
         } else if (subject instanceof MenuItem) {
             MenuItem menuItem = (MenuItem) subject;
             return "menuItem=" + menuItem.getId() + "#" + menuItem.getTitle();
+        } else if (subject instanceof ParentView) {
+            ParentView parentView = (ParentView) subject;
+            return "parentView=" + parentView.getParentId() + "#" + parentView.getChildIndex();
         } else if (subject instanceof OptionsMenu) {
             return "optionsMenu";
         } else if (subject instanceof Data) {
@@ -39,6 +42,13 @@ public abstract class Subject {
             String id = tmp.substring(0, pos);
             String title = tmp.substring(pos+1, tmp.length());
             return new MenuItem(title, id);
+        } else if (str.startsWith("parentView")) {
+            String tmp = str.substring(str.indexOf("=") + 1);
+            int pos = tmp.indexOf("#");
+            String parentId = tmp.substring(0, pos);
+            String idxStr = tmp.substring(pos+1, tmp.length());
+            int idx = Integer.parseInt(idxStr);
+            return new ParentView(parentId, idx);
         } else if (str.startsWith("optionsMenu")) {
             return new OptionsMenu();
         } else if (str.startsWith("data")) {

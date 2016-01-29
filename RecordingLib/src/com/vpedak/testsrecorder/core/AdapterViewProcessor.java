@@ -17,33 +17,29 @@ public class AdapterViewProcessor {
         final AdapterView.OnItemClickListener listener = adapterView.getOnItemClickListener();
         final AdapterView.OnItemLongClickListener longListener = adapterView.getOnItemLongClickListener();
 
-        if (listener != null) {
-            adapterView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-                @Override
-                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                    generateClickEvent(activityProcessor, position, adapterView);
+        adapterView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                generateClickEvent(activityProcessor, position, adapterView);
 
-                    if (listener != null) {
-                        listener.onItemClick(parent, view, position, id);
-                    }
+                if (listener != null) {
+                    listener.onItemClick(parent, view, position, id);
                 }
-            });
-        }
+            }
+        });
 
-        if (longListener != null) {
-            adapterView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
-                @Override
-                public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
-                    generateLongClickEvent(activityProcessor, position, adapterView);
+        adapterView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                generateLongClickEvent(activityProcessor, position, adapterView);
 
-                    if (longListener != null) {
-                        return longListener.onItemLongClick(parent, view, position, id);
-                    } else {
-                        return false;
-                    }
+                if (longListener != null) {
+                    return longListener.onItemLongClick(parent, view, position, id);
+                } else {
+                    return false;
                 }
-            });
-        }
+            }
+        });
     }
 
     public static void generateClickEvent(ActivityProcessor activityProcessor, int position, AdapterView adapterView) {

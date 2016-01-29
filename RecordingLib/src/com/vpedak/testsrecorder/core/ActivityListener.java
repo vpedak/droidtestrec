@@ -4,6 +4,9 @@ package com.vpedak.testsrecorder.core;
 import android.app.Activity;
 import android.app.Instrumentation;
 import android.content.IntentFilter;
+import android.os.Looper;
+import android.util.Log;
+import android.util.Printer;
 
 import java.util.Timer;
 import java.util.TimerTask;
