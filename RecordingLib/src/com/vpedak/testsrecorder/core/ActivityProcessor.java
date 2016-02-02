@@ -63,13 +63,18 @@ public class ActivityProcessor {
         return eventWriter;
     }
 
-    public void processActivity(Activity activity) {
+    public void processActivity(final Activity activity) {
         this.activity = activity;
 
-        menuProcessor.processActivity(activity);
+        activity.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                menuProcessor.processActivity(activity);
 
-        View view = activity.getWindow().getDecorView();
-        processView(view);
+                View view = activity.getWindow().getDecorView();
+                processView(view);
+            }
+        });
     }
 
     private void processViews(View[] views) {
@@ -170,8 +175,84 @@ public class ActivityProcessor {
             Log.e(ANDRIOD_TEST_RECORDER, "NoSuchFieldException", e);
         }
 
-        final GestureDetectorRunnable runnable = new GestureDetectorRunnable(view);
-        activity.runOnUiThread(runnable);
+        final GestureDetector gestureDetector = new GestureDetector(instrumentation.getTargetContext(), new GestureDetector.OnGestureListener() {
+            @Override
+            public boolean onDown(MotionEvent e) {
+                return false;
+            }
+
+            @Override
+            public void onShowPress(MotionEvent e) {
+            }
+
+            @Override
+            public boolean onSingleTapUp(MotionEvent e) {
+                return false;
+            }
+
+            @Override
+            public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
+                return false;
+            }
+
+            @Override
+            public void onLongPress(MotionEvent e) {
+            }
+
+            @Override
+            public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
+                if (e1 == null || e2 == null) {
+                    return false;
+                }
+
+                Action action = null;
+                String str = null;
+
+                float diffY = e2.getY() - e1.getY();
+                float diffX = e2.getX() - e1.getX();
+                if (Math.abs(diffX) > Math.abs(diffY)) {
+                    if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
+                        if (diffX > 0) {
+                            // swipe right
+                            action = new SwipeRightAction();
+                            str = "Swipe right at ";
+                        } else {
+                            // swipe left
+                            action = new SwipeLeftAction();
+                            str = "Swipe left at ";
+                        }
+                    }
+                } else if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
+                    if (diffY > 0) {
+                        // swipe down
+                        action = new SwipeDownAction();
+                        str = "Swipe down at ";
+                    } else {
+                        // swipe up
+                        action = new SwipeUpAction();
+                        str = "Swipe up at ";
+                    }
+                }
+
+                if (action != null) {
+                    AdapterView adapterView = getAdaptedView(view);
+
+                    if (adapterView != null) {
+                        // view is inside adapter view
+                        int pos = adapterView.getPositionForView(view);
+                        AdapterViewProcessor.generateEvent(ActivityProcessor.this, pos, adapterView, str + "item ", action);
+                    } else {
+                        Subject subject = resolveSubject(view);
+                        if (subject != null) {
+                            String descr = str + getWidgetName(view) + generateSubjectDescription(subject);
+                            eventWriter.writeEvent(new RecordingEvent(subject, action, descr));
+                        }
+                    }
+                }
+
+                return false;
+            }
+        });
 
         final View.OnTouchListener finalListener = listener;
         view.setOnTouchListener(new View.OnTouchListener() {
@@ -186,115 +267,12 @@ public class ActivityProcessor {
                 }
 
                 if (result) {
-                    runnable.getGestureDetector().onTouchEvent(event);
+                    gestureDetector.onTouchEvent(event);
                 }
 
                 return result;
             }
         });
-    }
-
-    private class GestureDetectorRunnable implements Runnable {
-        private View view;
-        private GestureDetector gestureDetector;
-        private CountDownLatch latch = new CountDownLatch(1);
-
-        public GestureDetectorRunnable(View view) {
-            this.view = view;
-        }
-
-        public GestureDetector getGestureDetector() {
-            try {
-                latch.await();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-            return gestureDetector;
-        }
-
-        @Override
-        public void run() {
-            gestureDetector = new GestureDetector(instrumentation.getTargetContext(), new GestureDetector.OnGestureListener() {
-                @Override
-                public boolean onDown(MotionEvent e) {
-                    return false;
-                }
-
-                @Override
-                public void onShowPress(MotionEvent e) {
-                }
-
-                @Override
-                public boolean onSingleTapUp(MotionEvent e) {
-                    return false;
-                }
-
-                @Override
-                public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-                    return false;
-                }
-
-                @Override
-                public void onLongPress(MotionEvent e) {
-                }
-
-                @Override
-                public boolean onFling(MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-                    if (e1 == null || e2 == null) {
-                        return false;
-                    }
-
-                    Action action = null;
-                    String str = null;
-
-                    float diffY = e2.getY() - e1.getY();
-                    float diffX = e2.getX() - e1.getX();
-                    if (Math.abs(diffX) > Math.abs(diffY)) {
-                        if (Math.abs(diffX) > SWIPE_THRESHOLD && Math.abs(velocityX) > SWIPE_VELOCITY_THRESHOLD) {
-                            if (diffX > 0) {
-                                // swipe right
-                                action = new SwipeRightAction();
-                                str = "Swipe right at ";
-                            } else {
-                                // swipe left
-                                action = new SwipeLeftAction();
-                                str = "Swipe left at ";
-                            }
-                        }
-                    } else if (Math.abs(diffY) > SWIPE_THRESHOLD && Math.abs(velocityY) > SWIPE_VELOCITY_THRESHOLD) {
-                        if (diffY > 0) {
-                            // swipe down
-                            action = new SwipeDownAction();
-                            str = "Swipe down at ";
-                        } else {
-                            // swipe up
-                            action = new SwipeUpAction();
-                            str = "Swipe up at ";
-                        }
-                    }
-
-                    if (action != null) {
-                        AdapterView adapterView = getAdaptedView(view);
-
-                        if (adapterView != null) {
-                            // view is inside adapter view
-                            int pos = adapterView.getPositionForView(view);
-                            AdapterViewProcessor.generateEvent(ActivityProcessor.this, pos, adapterView, str + "item ", action);
-                        } else {
-                            Subject subject = resolveSubject(view);
-                            if (subject != null) {
-                                String descr = str + getWidgetName(view) + generateSubjectDescription(subject);
-                                eventWriter.writeEvent(new RecordingEvent(subject, action, descr));
-                            }
-                        }
-                    }
-
-                    return false;
-                }
-            });
-
-            latch.countDown();
-        }
     }
 
     private String generateSubjectDescription(Subject subject) {
