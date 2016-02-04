@@ -6,6 +6,7 @@ import android.content.res.Resources;
 import android.os.Build;
 import android.os.Handler;
 import android.support.annotation.Nullable;
+import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
@@ -415,7 +416,7 @@ public class ActivityProcessor {
             if (parentId != null) {
                 for (int i = 0; i < parentView.getChildCount(); i++) {
                     if (view.equals(parentView.getChildAt(i))) {
-                        return new ParentView(parentId, i);
+                        return new ParentView(parentId, i, parentView instanceof RecyclerView);
                     }
                 }
             }

@@ -9,6 +9,7 @@ import java.util.List;
 
 public class EspressoTestGenerator implements TestGenerator {
     private boolean wasParentView = false;
+    private boolean wasScrollToPosition = false;
 
     @Override
     public String generate(String activityClassName, String testClassName, String packageName, List<RecordingEvent> events) {
@@ -19,11 +20,21 @@ public class EspressoTestGenerator implements TestGenerator {
         replace(sb, "{ACTIVITY_CLASS}", activityClassName);
         replace(sb, "{BODY}", generateBody(events));
 
+        StringBuilder additions = new StringBuilder();
+
         if (wasParentView) {
-            replace(sb, "{ADDITION}", "\n\n"+nthChildOfTemplate);
+            additions.append("\n\n").append(nthChildOfTemplate);
+        }
+        if (wasScrollToPosition) {
+            additions.append("\n\n").append(scrollToPositionTemplate);
+        }
+
+        if (additions.length() > 0) {
+            replace(sb, "{ADDITION}", additions.toString());
         } else {
             replace(sb, "{ADDITION}", "");
         }
+
         return sb.toString();
     }
 
@@ -56,6 +67,10 @@ public class EspressoTestGenerator implements TestGenerator {
     @Override
     public void generateSubject(StringBuilder sb, ParentView subject) {
         wasParentView = true;
+        if (subject.isGeneratetScrollToPosition()) {
+            wasScrollToPosition = true;
+            sb.append("onView(withId(").append(subject.getParentId()).append(")).perform(scrollToPosition(").append(subject.getChildIndex()).append("));\n");
+        }
         sb.append("onView(nthChildOf(withId(").append(subject.getParentId()).append("), ").append(subject.getChildIndex()).append(")).");
     }
 
@@ -172,4 +187,22 @@ public class EspressoTestGenerator implements TestGenerator {
             "            }\n" +
             "        };\n" +
             "    }\n";
+
+    private String scrollToPositionTemplate =
+            "    public static ViewAction scrollToPosition(final int pos) {\n" +
+                    "        return new ViewAction() {\n" +
+                    "            @Override\n" +
+                    "            public Matcher<View> getConstraints() {\n" +
+                    "                return isAssignableFrom(android.support.v7.widget.RecyclerView.class);\n" +
+                    "            }\n" +
+                    "            @Override\n" +
+                    "            public String getDescription() {\n" +
+                    "                return \"scroll to position\";\n" +
+                    "            }\n" +
+                    "            @Override\n" +
+                    "            public void perform(UiController uiController, View view) {\n" +
+                    "                ((android.support.v7.widget.RecyclerView)view).scrollToPosition(pos);\n" +
+                    "            }\n" +
+                    "        };\n" +
+                    "    }";
 }

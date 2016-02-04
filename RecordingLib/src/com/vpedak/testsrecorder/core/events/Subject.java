@@ -21,7 +21,7 @@ public abstract class Subject {
             return "menuItem=" + menuItem.getId() + "#" + menuItem.getTitle();
         } else if (subject instanceof ParentView) {
             ParentView parentView = (ParentView) subject;
-            return "parentView=" + parentView.getParentId() + "#" + parentView.getChildIndex();
+            return "parentView=" + parentView.getParentId() + "#" + parentView.getChildIndex()+"#"+parentView.isGeneratetScrollToPosition();
         } else if (subject instanceof OptionsMenu) {
             return "optionsMenu";
         } else if (subject instanceof Data) {
@@ -44,11 +44,13 @@ public abstract class Subject {
             return new MenuItem(title, id);
         } else if (str.startsWith("parentView")) {
             String tmp = str.substring(str.indexOf("=") + 1);
-            int pos = tmp.indexOf("#");
-            String parentId = tmp.substring(0, pos);
-            String idxStr = tmp.substring(pos+1, tmp.length());
+            String[] arr = tmp.split("[#]");
+            String parentId = arr[0];
+            String idxStr = arr[1];
             int idx = Integer.parseInt(idxStr);
-            return new ParentView(parentId, idx);
+            String scrollSupportedStr = arr[2];
+            boolean scrollSupported = Boolean.parseBoolean(scrollSupportedStr);
+            return new ParentView(parentId, idx, scrollSupported);
         } else if (str.startsWith("optionsMenu")) {
             return new OptionsMenu();
         } else if (str.startsWith("data")) {
