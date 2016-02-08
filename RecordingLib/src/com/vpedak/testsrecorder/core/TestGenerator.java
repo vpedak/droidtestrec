@@ -15,6 +15,7 @@ public interface TestGenerator {
     void generateSubject(StringBuilder sb, MenuItem subject);
     void generateSubject(StringBuilder sb, ParentView subject);
     void generateSubject(StringBuilder sb, Data subject);
+    void generateSubject(StringBuilder sb, Espresso subject);
 
     void generateActon(StringBuilder sb, Action action, Subject subject);
     void generateActon(StringBuilder sb, ClickAction action, Subject subject);
@@ -24,4 +25,5 @@ public interface TestGenerator {
     void generateActon(StringBuilder sb, SwipeDownAction action, Subject subject);
     void generateActon(StringBuilder sb, SwipeLeftAction action, Subject subject);
     void generateActon(StringBuilder sb, SwipeRightAction action, Subject subject);
+    void generateActon(StringBuilder sb, PressBackAction action, Subject subject);
 }

@@ -18,7 +18,7 @@ public class {CLASSNAME} extends ActivityInstrumentationTestCase2<{ACTIVITY}> {
         super.setUp();
         activity = getActivity();
     }
-    public void testSimpleClickAndCheckText() throws InterruptedException {
+    public void testRun() throws InterruptedException {
         new ActivityListener(getInstrumentation(), activity, {ID}L).start();
         Thread.sleep(24*60*60*1000);
     }

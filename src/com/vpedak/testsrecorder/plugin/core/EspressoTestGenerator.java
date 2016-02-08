@@ -1,5 +1,6 @@
 package com.vpedak.testsrecorder.plugin.core;
 
+import com.vpedak.testsrecorder.core.Espresso;
 import com.vpedak.testsrecorder.core.events.Data;
 import com.vpedak.testsrecorder.core.TestGenerator;
 import com.vpedak.testsrecorder.core.events.*;
@@ -89,6 +90,12 @@ public class EspressoTestGenerator implements TestGenerator {
     }
 
     @Override
+    public void generateSubject(StringBuilder sb, Espresso subject) {
+    }
+
+
+
+    @Override
     public void generateActon(StringBuilder sb, ClickAction action, Subject subject) {
         if (!(subject instanceof OptionsMenu)) {
             sb.append("perform(click())");
@@ -125,6 +132,11 @@ public class EspressoTestGenerator implements TestGenerator {
     @Override
     public void generateActon(StringBuilder sb, SwipeRightAction action, Subject subject) {
         sb.append("perform(swipeRight())");
+    }
+
+    @Override
+    public void generateActon(StringBuilder sb, PressBackAction action, Subject subject) {
+        sb.append("pressBack()");
     }
 
     private String generateBody(List<RecordingEvent> events) {

@@ -1,5 +1,6 @@
 package com.vpedak.testsrecorder.core.events;
 
+import com.vpedak.testsrecorder.core.Espresso;
 import com.vpedak.testsrecorder.core.TestGenerator;
 
 public abstract class Subject {
@@ -24,6 +25,8 @@ public abstract class Subject {
             return "parentView=" + parentView.getParentId() + "#" + parentView.getChildIndex()+"#"+parentView.isGeneratetScrollToPosition();
         } else if (subject instanceof OptionsMenu) {
             return "optionsMenu";
+        } else if (subject instanceof Espresso) {
+            return "espresso";
         } else if (subject instanceof Data) {
             Data data = (Data) subject;
             return "data="+data.getAdapterId()+"#"+data.getClassName()+(data.getValue()==null?"":"#"+data.getValue());
@@ -53,6 +56,8 @@ public abstract class Subject {
             return new ParentView(parentId, idx, scrollSupported);
         } else if (str.startsWith("optionsMenu")) {
             return new OptionsMenu();
+        } else if (str.startsWith("espresso")) {
+            return new Espresso();
         } else if (str.startsWith("data")) {
             String tmp = str.substring(str.indexOf("=") + 1);
             int pos1 = tmp.indexOf("#");

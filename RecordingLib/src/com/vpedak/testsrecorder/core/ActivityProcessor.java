@@ -51,10 +51,10 @@ public class ActivityProcessor {
     private static final int SWIPE_THRESHOLD = 100;
     private static final int SWIPE_VELOCITY_THRESHOLD = 100;
 
-    public ActivityProcessor(long uniqueId, Instrumentation instrumentation) {
+    public ActivityProcessor(long uniqueId, Instrumentation instrumentation, EventWriter eventWriter) {
         this.uniqueId = uniqueId;
         this.instrumentation = instrumentation;
-        eventWriter = new EventWriter(uniqueId);
+        this.eventWriter = eventWriter;
         menuProcessor = new MenuProcessor(this);
         checkableProcessor = new CheckableProcessor(this);
         adapterViewProcessor = new AdapterViewProcessor(this);
