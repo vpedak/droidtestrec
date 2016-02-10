@@ -3,9 +3,16 @@ package com.vpedak.testsrecorder.core.events;
 import com.vpedak.testsrecorder.core.TestGenerator;
 
 public class RecordingEvent {
+    private String group = null;
     private Subject subject;
     private Action action;
     private String description;
+
+    public RecordingEvent(String group, Subject subject, Action action) {
+        this.group = group;
+        this.subject = subject;
+        this.action = action;
+    }
 
     public RecordingEvent(Subject subject, Action action, String description) {
         this.subject = subject;
@@ -17,16 +24,8 @@ public class RecordingEvent {
         return subject;
     }
 
-    public void setSubject(Subject subject) {
-        this.subject = subject;
-    }
-
     public Action getAction() {
         return action;
-    }
-
-    public void setAction(Action action) {
-        this.action = action;
     }
 
     public String getDescription() {
@@ -37,21 +36,37 @@ public class RecordingEvent {
         this.description = description;
     }
 
+    public String getGroup() {
+        return group;
+    }
+
+    public void setGroup(String group) {
+        this.group = group;
+    }
+
     public void accept(StringBuilder sb, TestGenerator generator){
         generator.generateEvent(sb, this);
     }
 
     @Override
     public String toString() {
-        return "event=["+subject.toString()+","+action.toString()+","+description+"]";
+        return "event=["+(getGroup()==null?"":getGroup())+","+subject.toString()+","+action.toString()+"," +(description==null?"":description)+"]";
     }
 
     public static RecordingEvent fromString(String str) {
-        int pos = str.indexOf(',');
-        int pos2 = str.lastIndexOf(',');
-        String subjectStr = str.substring(7, pos);
-        String actionStr = str.substring(pos+1, pos2);
-        String description = str.substring(pos2+1, str.length()-1);
-       return new RecordingEvent(Subject.fromString(subjectStr), Action.fromString(actionStr), description);
+        String tmp = str.substring(7, str.length()-1);
+        String arr[] = tmp.split("[,]");
+
+        String group = arr[0];
+        String subjectStr = arr[1];
+        String actionStr = arr[2];
+        String description = arr.length == 4 ? arr[3] : null;
+        RecordingEvent event = new RecordingEvent(Subject.fromString(subjectStr), Action.fromString(actionStr), description);
+
+        if (group.length() > 0) {
+            event.setGroup(group);
+        }
+
+        return event;
     }
 }

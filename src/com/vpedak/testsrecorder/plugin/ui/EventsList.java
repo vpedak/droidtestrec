@@ -53,6 +53,7 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
     private PsiFile activityFile;
     private JTextField testClassField = new JTextField(20);
     private String activityClassName;
+    private List<RecordingEvent> events = new ArrayList<RecordingEvent>();
 
     public EventsList() {
         super(new VerticalLayout(5));
@@ -118,6 +119,7 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
 
     public void clear(Project project, Module module, PsiFile activityFile) {
         listModel.removeAllElements();
+        events.clear();
 
         this.project = project;
         this.module = module;
@@ -154,13 +156,7 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
 
                     TestGenerator testGenerator = new EspressoTestGenerator();
 
-                    List<RecordingEvent> list = new ArrayList<RecordingEvent>(listModel.size());
-                    for (int i=0; i<listModel.getSize(); i++) {
-                        RecordingEvent event = (RecordingEvent) listModel.get(i);
-                        list.add(event);
-                    }
-
-                    String code = testGenerator.generate(activityClassName, testClassName, packageName, list);
+                    String code = testGenerator.generate(activityClassName, testClassName, packageName, events);
                     com.intellij.openapi.vfs.VfsUtil.saveText(testVirtualFile, code);
 
                     final PsiFile psiFile = testFile;
@@ -275,6 +271,7 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
         int res = fc.showOpenDialog(this);
         if (res == JFileChooser.APPROVE_OPTION) {
             listModel.removeAllElements();
+            events.clear();
 
             File file = fc.getSelectedFile();
             BufferedReader reader = null;
@@ -284,7 +281,12 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
                 String str = reader.readLine();
                 while (str != null) {
                     RecordingEvent event = RecordingEvent.fromString(str);
-                    listModel.addElement(event);
+                    events.add(event);
+
+                    if (event.getDescription() != null) {
+                        listModel.addElement(event);
+                    }
+
                     str = reader.readLine();
                 }
             } catch (IOException e) {
@@ -315,8 +317,7 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
             try {
                 writer = new FileWriter(file, false);
 
-                for (int i=0; i<listModel.getSize(); i++) {
-                    RecordingEvent event = (RecordingEvent) listModel.get(i);
+                for (RecordingEvent event : events) {
                     writer.write(event.toString()+"\n");
                 }
             } catch (IOException e) {
@@ -336,12 +337,15 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
 
     @Override
     public void onRecordingEvent(final RecordingEvent event) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                listModel.addElement(event);
-            }
-        });
+        events.add(event);
+        if (event.getDescription() != null) {
+            SwingUtilities.invokeLater(new Runnable() {
+                @Override
+                public void run() {
+                    listModel.addElement(event);
+                }
+            });
+        }
     }
 
     @Override

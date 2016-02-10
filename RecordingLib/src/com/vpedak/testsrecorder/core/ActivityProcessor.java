@@ -20,17 +20,7 @@ import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.TextView;
 
-import com.vpedak.testsrecorder.core.events.Action;
-import com.vpedak.testsrecorder.core.events.ClickAction;
-import com.vpedak.testsrecorder.core.events.LongClickAction;
-import com.vpedak.testsrecorder.core.events.ParentView;
-import com.vpedak.testsrecorder.core.events.RecordingEvent;
-import com.vpedak.testsrecorder.core.events.ReplaceTextAction;
-import com.vpedak.testsrecorder.core.events.Subject;
-import com.vpedak.testsrecorder.core.events.SwipeDownAction;
-import com.vpedak.testsrecorder.core.events.SwipeLeftAction;
-import com.vpedak.testsrecorder.core.events.SwipeRightAction;
-import com.vpedak.testsrecorder.core.events.SwipeUpAction;
+import com.vpedak.testsrecorder.core.events.*;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -243,10 +233,16 @@ public class ActivityProcessor {
                         int pos = adapterView.getPositionForView(view);
                         AdapterViewProcessor.generateEvent(ActivityProcessor.this, pos, adapterView, str + "item ", action);
                     } else {
-                        Subject subject = resolveSubject(view);
-                        if (subject != null) {
-                            String descr = str + getWidgetName(view) + generateSubjectDescription(subject);
-                            eventWriter.writeEvent(new RecordingEvent(subject, action, descr));
+                        ResolveSubjectResult result = resolveSubject(view);
+                        if (result.getSubject() != null) {
+                            String descr = str + getWidgetName(view) + generateSubjectDescription(result.getSubject());
+                            if (result.getScrollToEvent() != null) {
+                                result.getScrollToEvent().setDescription(descr);
+                                eventWriter.writeEvent(result.getScrollToEvent());
+                                eventWriter.writeEvent(new RecordingEvent(result.getScrollToEvent().getGroup(),result.getSubject(), action));
+                            } else {
+                                eventWriter.writeEvent(new RecordingEvent(result.getSubject(), action, descr));
+                            }
                         }
                     }
                 }
@@ -295,11 +291,18 @@ public class ActivityProcessor {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                Subject subject = resolveSubject(view);
-                if (subject != null) {
+                ResolveSubjectResult result = resolveSubject(view);
+                if (result.getSubject() != null) {
                     String text = view.getText().toString();
-                    String descr = "Set text to '" + text + "' in " + getWidgetName(view) + generateSubjectDescription(subject);
-                    eventWriter.addDelayedEvent(new RecordingEvent(subject, new ReplaceTextAction(text), descr));
+                    String descr = "Set text to '" + text + "' in " + getWidgetName(view) + generateSubjectDescription(result.getSubject());
+                    if (result.getScrollToEvent() != null) {
+                        result.getScrollToEvent().setDescription(descr);
+                        eventWriter.addDelayedEvent(result.getScrollToEvent());
+                        eventWriter.addDelayedEvent(new RecordingEvent(result.getScrollToEvent().getGroup(),
+                                result.getSubject(), new ReplaceTextAction(text)));
+                    } else {
+                        eventWriter.addDelayedEvent(new RecordingEvent(result.getSubject(), new ReplaceTextAction(text), descr));
+                    }
                 }
             }
 
@@ -347,10 +350,19 @@ public class ActivityProcessor {
                         int pos = adapterView.getPositionForView(view);
                         AdapterViewProcessor.generateClickEvent(ActivityProcessor.this, pos, adapterView);
                     } else {
-                        Subject subject = resolveSubject(view);
-                        if (subject != null) {
-                            String descr = "Click at " + getWidgetName(view) + generateSubjectDescription(subject);
-                            eventWriter.writeEvent(new RecordingEvent(subject, new ClickAction(), descr));
+                        ResolveSubjectResult result = resolveSubject(view);
+                        if (result.getSubject() != null) {
+                            String descr = "Click at " + getWidgetName(view) + generateSubjectDescription(result.getSubject());
+                            if (result.getScrollToEvent() != null) {
+                                result.getScrollToEvent().setDescription(descr);
+                                eventWriter.writeEvent(result.getScrollToEvent());
+                                eventWriter.writeEvent(new RecordingEvent(
+                                        result.getScrollToEvent().getGroup(),
+                                        result.getSubject(),
+                                        new ClickAction()));
+                            } else {
+                                eventWriter.writeEvent(new RecordingEvent(result.getSubject(), new ClickAction(), descr));
+                            }
                         }
                     }
                     finalListener.onClick(v);
@@ -371,10 +383,18 @@ public class ActivityProcessor {
                         int pos = adapterView.getPositionForView(view);
                         AdapterViewProcessor.generateLongClickEvent(ActivityProcessor.this, pos, adapterView);
                     } else {
-                        Subject subject = resolveSubject(view);
-                        if (subject != null) {
-                            String descr = "Long click at " + getWidgetName(view) + generateSubjectDescription(subject);
-                            eventWriter.writeEvent(new RecordingEvent(subject, new LongClickAction(), descr));
+                        ResolveSubjectResult result = resolveSubject(view);
+                        if (result.getSubject() != null) {
+                            String descr = "Long click at " + getWidgetName(view) + generateSubjectDescription(result.getSubject());
+                            if (result.getScrollToEvent() != null) {
+                                result.getScrollToEvent().setDescription(descr);
+                                eventWriter.writeEvent(result.getScrollToEvent());
+                                eventWriter.writeEvent(new RecordingEvent(
+                                        result.getScrollToEvent().getGroup(),
+                                        result.getSubject(), new LongClickAction()));
+                            } else {
+                                eventWriter.writeEvent(new RecordingEvent(result.getSubject(), new LongClickAction(), descr));
+                            }
                         }
 
                     }
@@ -405,10 +425,10 @@ public class ActivityProcessor {
     }
 
     @Nullable
-    public Subject resolveSubject(View view) {
+    public ResolveSubjectResult resolveSubject(View view) {
         String viewId = resolveId(view.getId());
         if (viewId != null) {
-            return new com.vpedak.testsrecorder.core.events.View(viewId);
+            return new ResolveSubjectResult(new com.vpedak.testsrecorder.core.events.View(viewId));
         } else if (view.getParent() != null && view.getParent() instanceof ViewGroup) {
             ViewGroup parentView = (ViewGroup) view.getParent();
             String parentId = resolveId(parentView.getId());
@@ -416,7 +436,14 @@ public class ActivityProcessor {
             if (parentId != null) {
                 for (int i = 0; i < parentView.getChildCount(); i++) {
                     if (view.equals(parentView.getChildAt(i))) {
-                        return new ParentView(parentId, i, parentView instanceof RecyclerView);
+                        RecordingEvent scrollToEvent = null;
+                        if (parentView instanceof RecyclerView) {
+                            scrollToEvent =
+                                    new RecordingEvent(String.valueOf(System.currentTimeMillis()),
+                                            new com.vpedak.testsrecorder.core.events.View(parentId),
+                                            new ScrollToPositionAction(i));
+                        }
+                        return new ResolveSubjectResult(new ParentView(parentId, i), scrollToEvent);
                     }
                 }
             }
@@ -494,5 +521,27 @@ public class ActivityProcessor {
         }
 
         return null;
+    }
+
+    public static class ResolveSubjectResult {
+        private Subject subject;
+        private RecordingEvent scrollToEvent;
+
+        public ResolveSubjectResult(Subject subject) {
+            this.subject = subject;
+        }
+
+        public ResolveSubjectResult(Subject subject, RecordingEvent scrollToEvent) {
+            this.subject = subject;
+            this.scrollToEvent = scrollToEvent;
+        }
+
+        public Subject getSubject() {
+            return subject;
+        }
+
+        public RecordingEvent getScrollToEvent() {
+            return scrollToEvent;
+        }
     }
 }

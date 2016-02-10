@@ -68,10 +68,6 @@ public class EspressoTestGenerator implements TestGenerator {
     @Override
     public void generateSubject(StringBuilder sb, ParentView subject) {
         wasParentView = true;
-        if (subject.isGeneratetScrollToPosition()) {
-            wasScrollToPosition = true;
-            sb.append("onView(withId(").append(subject.getParentId()).append(")).perform(scrollToPosition(").append(subject.getChildIndex()).append("));\n");
-        }
         sb.append("onView(nthChildOf(withId(").append(subject.getParentId()).append("), ").append(subject.getChildIndex()).append(")).");
     }
 
@@ -139,20 +135,41 @@ public class EspressoTestGenerator implements TestGenerator {
         sb.append("pressBack()");
     }
 
+    @Override
+    public void generateActon(StringBuilder sb, ScrollToPositionAction action, Subject subject) {
+        wasScrollToPosition = true;
+        sb.append("perform(scrollToPosition("+action.getPosition()+"))");
+    }
+
+
     private String generateBody(List<RecordingEvent> events) {
         StringBuilder sb = new StringBuilder();
         for(RecordingEvent event : events) {
             event.accept(sb, this);
-            sb.append(";\n");
-            sb.append("\n");
         }
         return sb.toString();
     }
 
+    private String currentGroup = null;
+
     public void generateEvent(StringBuilder sb, RecordingEvent event) {
-        sb.append("\t// ").append(event.getDescription()).append('\n');
+        if (event.getGroup() != null) {
+            if (!event.getGroup().equals(currentGroup)) {
+                sb.append("\n");
+                currentGroup = event.getGroup();
+            }
+        } else {
+            currentGroup = null;
+            sb.append("\n");
+        }
+
+        if (event.getDescription() != null) {
+            sb.append("\t// ").append(event.getDescription()).append('\n');
+        }
+
         event.getSubject().accept(sb, this);
         event.getAction().accept(sb, this, event.getSubject());
+        sb.append(";\n");
     }
 
     private StringBuilder replace(StringBuilder sb, String from, String to) {

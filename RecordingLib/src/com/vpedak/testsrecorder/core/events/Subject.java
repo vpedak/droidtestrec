@@ -22,7 +22,7 @@ public abstract class Subject {
             return "menuItem=" + menuItem.getId() + "#" + menuItem.getTitle();
         } else if (subject instanceof ParentView) {
             ParentView parentView = (ParentView) subject;
-            return "parentView=" + parentView.getParentId() + "#" + parentView.getChildIndex()+"#"+parentView.isGeneratetScrollToPosition();
+            return "parentView=" + parentView.getParentId() + "#" + parentView.getChildIndex();
         } else if (subject instanceof OptionsMenu) {
             return "optionsMenu";
         } else if (subject instanceof Espresso) {
@@ -51,9 +51,7 @@ public abstract class Subject {
             String parentId = arr[0];
             String idxStr = arr[1];
             int idx = Integer.parseInt(idxStr);
-            String scrollSupportedStr = arr[2];
-            boolean scrollSupported = Boolean.parseBoolean(scrollSupportedStr);
-            return new ParentView(parentId, idx, scrollSupported);
+            return new ParentView(parentId, idx);
         } else if (str.startsWith("optionsMenu")) {
             return new OptionsMenu();
         } else if (str.startsWith("espresso")) {

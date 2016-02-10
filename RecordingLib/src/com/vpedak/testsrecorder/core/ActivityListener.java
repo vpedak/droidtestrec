@@ -81,6 +81,8 @@ public class ActivityListener implements EventWriter.EventWriterListener {
             }
             activity = test;
 
+            //Log.i("12345", activity.getLocalClassName());
+
             activityProcessor.processActivity(activity);
         }
         wasEvent = false;

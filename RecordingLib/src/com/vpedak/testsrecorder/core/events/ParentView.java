@@ -5,12 +5,10 @@ import com.vpedak.testsrecorder.core.TestGenerator;
 public class ParentView extends Subject {
     private String parentId;
     private int childIdx;
-    private boolean generatetScrollToPosition = false;
 
-    public ParentView(String parentId, int childIdx, boolean supportScrollToPosition) {
+    public ParentView(String parentId, int childIdx) {
         this.parentId = parentId;
         this.childIdx = childIdx;
-        this.generatetScrollToPosition = supportScrollToPosition;
     }
 
     public String getParentId() {
@@ -19,10 +17,6 @@ public class ParentView extends Subject {
 
     public int getChildIndex() {
         return childIdx;
-    }
-
-    public boolean isGeneratetScrollToPosition() {
-        return generatetScrollToPosition;
     }
 
     public void accept(StringBuilder sb, TestGenerator generator){
