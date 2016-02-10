@@ -38,14 +38,12 @@ import org.jetbrains.android.dom.manifest.Activity;
 import org.jetbrains.android.facet.AndroidFacet;
 
 import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.util.Collections;
@@ -101,7 +99,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
 
             panel = new SimpleToolWindowPanel(true);
 
-            JToolBar toolBar = new JToolBar();
+            final JToolBar toolBar = new JToolBar();
             this.recButton = new JButton(RECORD, IconLoader.getIcon("icons/rec.png"));
             this.recButton.addActionListener(new AbstractAction() {
                 public void actionPerformed(ActionEvent e) {
@@ -138,9 +136,14 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
                     ToolsTestsRecorderAction.this.fillActivities((ModulesComboBoxModel.ModuleWrapper) ToolsTestsRecorderAction.this.moduleBoxModel.getSelected());
                 }
             });
-            modList.setMaximumSize(modules.length == 0 ? new Dimension(150, modList.getPreferredSize().height) : modList.getPreferredSize());
+
+            if (moduleBoxModel.getSelected() != null) {
+                modList.setPrototypeDisplayValue(moduleBoxModel.getSelected());
+            }
             JLabel modLabel = new JLabel("Module: ", SwingConstants.RIGHT);
-            modLabel.setMaximumSize(new Dimension(modLabel.getPreferredSize().width + 20, modLabel.getPreferredSize().height));
+            Border border = modLabel.getBorder();
+            Border margin = new EmptyBorder(0,15,0,5);
+            modLabel.setBorder(new CompoundBorder(border, margin));
             toolBar.add(modLabel);
             toolBar.add(modList);
 
@@ -151,9 +154,10 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
                     ToolsTestsRecorderAction.this.recButton.setEnabled(ToolsTestsRecorderAction.this.activitiesBoxModel.getSelected() != null);
                 }
             });
-            this.activitiesList.setMaximumSize(new Dimension(150, this.activitiesList.getPreferredSize().height));
-            JLabel activityLabel = new JLabel("Activity: ", SwingConstants.RIGHT);
-            activityLabel.setMaximumSize(new Dimension(activityLabel.getPreferredSize().width + 20, activityLabel.getPreferredSize().height));
+            final JLabel activityLabel = new JLabel("Activity: ", SwingConstants.RIGHT);
+            border = activityLabel.getBorder();
+            margin = new EmptyBorder(0,15,0,5);
+            activityLabel.setBorder(new CompoundBorder(border, margin));
             toolBar.add(activityLabel);
             toolBar.add(this.activitiesList);
 
@@ -256,6 +260,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
                                     selected = activity;
                                     this.activitiesBoxModel = new ActivitiesComboBoxModel(activities, selected);
                                     this.activitiesList.setModel(this.activitiesBoxModel);
+                                    this.activitiesList.setPrototypeDisplayValue(selected);
                                     this.recButton.setEnabled(this.activitiesBoxModel.getSelected() != null);
                                     return;
                                 }
