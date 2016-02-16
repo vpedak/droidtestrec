@@ -24,6 +24,9 @@ public abstract class Action {
         } else if (action instanceof ScrollToPositionAction) {
             ScrollToPositionAction positionAction = (ScrollToPositionAction) action;
             return "action=scrollToPosition#"+positionAction.getPosition();
+        } else if (action instanceof SelectViewPagerPageAction) {
+            SelectViewPagerPageAction positionAction = (SelectViewPagerPageAction) action;
+            return "action=selectViewPagerPage#"+positionAction.getPosition();
         } else if (action instanceof SwipeUpAction) {
             return "action=swipeup";
         } else if (action instanceof SwipeDownAction) {
@@ -54,6 +57,10 @@ public abstract class Action {
             int pos = action.indexOf("#");
             String posStr = action.substring(pos+1);
             return new ScrollToPositionAction(Integer.parseInt(posStr));
+        } else if (action.startsWith("selectViewPagerPage")) {
+            int pos = action.indexOf("#");
+            String posStr = action.substring(pos+1);
+            return new SelectViewPagerPageAction(Integer.parseInt(posStr));
         } else if (action.equals("swipeup")) {
             return  new SwipeUpAction();
         } else if (action.equals("swipedown")) {

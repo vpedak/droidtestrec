@@ -21,6 +21,9 @@ public class ActionTest {
         ScrollToPositionAction scrollToPositionAction = new ScrollToPositionAction(5);
         Assert.assertEquals("action=scrollToPosition#5", scrollToPositionAction.toString());
 
+        SelectViewPagerPageAction selectViewPagerPageAction = new SelectViewPagerPageAction(5);
+        Assert.assertEquals("action=selectViewPagerPage#5", selectViewPagerPageAction.toString());
+
         SwipeUpAction swipeUpAction = new SwipeUpAction();
         Assert.assertEquals("action=swipeup", swipeUpAction.toString());
 
@@ -48,6 +51,9 @@ public class ActionTest {
 
         ScrollToPositionAction scrollToPositionAction = (ScrollToPositionAction) Action.fromString("action=scrollToPosition#5");
         Assert.assertEquals(5, scrollToPositionAction.getPosition());
+
+        SelectViewPagerPageAction selectViewPagerPageAction = (SelectViewPagerPageAction) Action.fromString("action=selectViewPagerPage#5");
+        Assert.assertEquals(5, selectViewPagerPageAction.getPosition());
 
         SwipeUpAction swipeUpAction = (SwipeUpAction) Action.fromString("action=swipeup");
 

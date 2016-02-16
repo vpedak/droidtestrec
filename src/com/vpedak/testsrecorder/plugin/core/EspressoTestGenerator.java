@@ -11,6 +11,7 @@ import java.util.List;
 public class EspressoTestGenerator implements TestGenerator {
     private boolean wasParentView = false;
     private boolean wasScrollToPosition = false;
+    private boolean wasSelectViewPagerPage = false;
 
     @Override
     public String generate(String activityClassName, String testClassName, String packageName, List<RecordingEvent> events) {
@@ -28,6 +29,9 @@ public class EspressoTestGenerator implements TestGenerator {
         }
         if (wasScrollToPosition) {
             additions.append("\n\n").append(scrollToPositionTemplate);
+        }
+        if (wasSelectViewPagerPage) {
+            additions.append("\n\n").append(selectViewPagerPageTemplate);
         }
 
         if (additions.length() > 0) {
@@ -141,6 +145,11 @@ public class EspressoTestGenerator implements TestGenerator {
         sb.append("perform(scrollToPosition("+action.getPosition()+"))");
     }
 
+    @Override
+    public void generateActon(StringBuilder sb, SelectViewPagerPageAction action, Subject subject) {
+        wasSelectViewPagerPage = true;
+        sb.append("perform(selectViewPagerPage("+action.getPosition()+"))");
+    }
 
     private String generateBody(List<RecordingEvent> events) {
         StringBuilder sb = new StringBuilder();
@@ -234,4 +243,22 @@ public class EspressoTestGenerator implements TestGenerator {
                     "            }\n" +
                     "        };\n" +
                     "    }";
+
+    private String selectViewPagerPageTemplate =
+            "    public static ViewAction selectViewPagerPage(final int pos) {\n" +
+                    "        return new ViewAction() {\n" +
+                    "            @Override\n" +
+                    "            public Matcher<View> getConstraints() {\n" +
+                    "                return isAssignableFrom(android.support.v4.view.ViewPager.class);\n" +
+                    "            }\n" +
+                    "            @Override\n" +
+                    "            public String getDescription() {\n" +
+                    "                return \"select page in ViewPager\";\n" +
+                    "            }\n" +
+                    "            @Override\n" +
+                    "            public void perform(UiController uiController, View view) {\n" +
+                    "                ((android.support.v4.view.ViewPager)view).setCurrentItem(pos);\n" +
+                    "            }\n" +
+                    "        };\n" +
+                    "    }\n";
 }

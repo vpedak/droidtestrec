@@ -6,6 +6,7 @@ import android.content.res.Resources;
 import android.os.Build;
 import android.os.Handler;
 import android.support.annotation.Nullable;
+import android.support.v4.view.ViewPager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -25,7 +26,6 @@ import com.vpedak.testsrecorder.core.events.*;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
 
 public class ActivityProcessor {
     private long uniqueId;
@@ -87,6 +87,12 @@ public class ActivityProcessor {
 
         processTouch(view);
 
+
+        if (view instanceof ViewPager) {
+            ViewPager viewPager = (ViewPager) view;
+            processViewPager(viewPager);
+        }
+
         if (view instanceof EditText) {
             processTextView((TextView) view);
         } else if (view instanceof AdapterView) {
@@ -145,6 +151,25 @@ public class ActivityProcessor {
                 }
             });
         }
+    }
+
+    private void processViewPager(final ViewPager viewPager) {
+        viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            }
+            @Override
+            public void onPageSelected(int position) {
+                ResolveSubjectResult result = resolveSubject(viewPager);
+                if (result != null) {
+                    eventWriter.writeEvent(new RecordingEvent(result.getSubject(), new SelectViewPagerPageAction(position),
+                            "Select page "+position+" in " + getWidgetName(viewPager)+generateSubjectDescription(result.getSubject())));
+                }
+            }
+            @Override
+            public void onPageScrollStateChanged(int state) {
+            }
+        });
     }
 
     private void processTouch(final View view) {
@@ -234,7 +259,7 @@ public class ActivityProcessor {
                         AdapterViewProcessor.generateEvent(ActivityProcessor.this, pos, adapterView, str + "item ", action);
                     } else {
                         ResolveSubjectResult result = resolveSubject(view);
-                        if (result.getSubject() != null) {
+                        if (result != null) {
                             String descr = str + getWidgetName(view) + generateSubjectDescription(result.getSubject());
                             if (result.getScrollToEvent() != null) {
                                 result.getScrollToEvent().setDescription(descr);
@@ -292,7 +317,7 @@ public class ActivityProcessor {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 ResolveSubjectResult result = resolveSubject(view);
-                if (result.getSubject() != null) {
+                if (result != null) {
                     String text = view.getText().toString();
                     String descr = "Set text to '" + text + "' in " + getWidgetName(view) + generateSubjectDescription(result.getSubject());
                     if (result.getScrollToEvent() != null) {
@@ -351,7 +376,7 @@ public class ActivityProcessor {
                         AdapterViewProcessor.generateClickEvent(ActivityProcessor.this, pos, adapterView);
                     } else {
                         ResolveSubjectResult result = resolveSubject(view);
-                        if (result.getSubject() != null) {
+                        if (result != null) {
                             String descr = "Click at " + getWidgetName(view) + generateSubjectDescription(result.getSubject());
                             if (result.getScrollToEvent() != null) {
                                 result.getScrollToEvent().setDescription(descr);
@@ -384,7 +409,7 @@ public class ActivityProcessor {
                         AdapterViewProcessor.generateLongClickEvent(ActivityProcessor.this, pos, adapterView);
                     } else {
                         ResolveSubjectResult result = resolveSubject(view);
-                        if (result.getSubject() != null) {
+                        if (result != null) {
                             String descr = "Long click at " + getWidgetName(view) + generateSubjectDescription(result.getSubject());
                             if (result.getScrollToEvent() != null) {
                                 result.getScrollToEvent().setDescription(descr);
