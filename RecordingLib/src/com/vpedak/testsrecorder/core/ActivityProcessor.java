@@ -16,10 +16,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
-import android.widget.AdapterView;
-import android.widget.CompoundButton;
-import android.widget.EditText;
-import android.widget.TextView;
+import android.widget.*;
 
 import com.vpedak.testsrecorder.core.events.*;
 
@@ -449,11 +446,46 @@ public class ActivityProcessor {
         return null;
     }
 
+    private boolean isInsideScrollView(View view) {
+        ViewParent parent = view.getParent();
+        while (parent != null) {
+            if (parent instanceof ScrollView || parent instanceof HorizontalScrollView) {
+                return true;
+            }
+            parent = parent.getParent();
+        }
+        return false;
+    }
+
     @Nullable
     public ResolveSubjectResult resolveSubject(View view) {
         String viewId = resolveId(view.getId());
         if (viewId != null) {
-            return new ResolveSubjectResult(new com.vpedak.testsrecorder.core.events.View(viewId));
+            if (view.getParent() instanceof RecyclerView) {
+                RecyclerView parentView = (RecyclerView) view.getParent();
+
+                String parentId = resolveId(parentView.getId());
+                if (parentId != null) {
+                    for (int i = 0; i < parentView.getChildCount(); i++) {
+                        if (view.equals(parentView.getChildAt(i))) {
+                            RecordingEvent scrollToEvent =
+                                        new RecordingEvent(String.valueOf(System.currentTimeMillis()),
+                                                new com.vpedak.testsrecorder.core.events.View(parentId),
+                                                new ScrollToPositionAction(i));
+                            return new ResolveSubjectResult(new ParentView(parentId, i), scrollToEvent);
+                        }
+                    }
+                }
+            }
+
+            if (isInsideScrollView(view)) {
+                RecordingEvent scrollToEvent = new RecordingEvent(String.valueOf(System.currentTimeMillis()),
+                        new com.vpedak.testsrecorder.core.events.View(viewId),
+                        new ScrollToAction());
+                return new ResolveSubjectResult(new com.vpedak.testsrecorder.core.events.View(viewId), scrollToEvent);
+            } else {
+                return new ResolveSubjectResult(new com.vpedak.testsrecorder.core.events.View(viewId));
+            }
         } else if (view.getParent() != null && view.getParent() instanceof ViewGroup) {
             ViewGroup parentView = (ViewGroup) view.getParent();
             String parentId = resolveId(parentView.getId());

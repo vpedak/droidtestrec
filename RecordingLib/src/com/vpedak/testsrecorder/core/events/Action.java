@@ -37,6 +37,8 @@ public abstract class Action {
             return "action=swiperight";
         } else if (action instanceof PressBackAction) {
             return "action=pressback";
+        } else if (action instanceof ScrollToAction) {
+            return "action=scrollTo";
         } else {
             throw new RuntimeException("Unknown action - " + action.getClass());
         }
@@ -71,6 +73,8 @@ public abstract class Action {
             return  new SwipeRightAction();
         } else if (action.equals("pressback")) {
             return  new PressBackAction();
+        } else if (action.equals("scrollTo")) {
+            return  new ScrollToAction();
         } else {
             throw new RuntimeException("Unknown action - " + str);
         }

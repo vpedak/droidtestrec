@@ -151,6 +151,11 @@ public class EspressoTestGenerator implements TestGenerator {
         sb.append("perform(selectViewPagerPage("+action.getPosition()+"))");
     }
 
+    @Override
+    public void generateActon(StringBuilder sb, ScrollToAction action, Subject subject) {
+        sb.append("perform(scrollTo())");
+    }
+
     private String generateBody(List<RecordingEvent> events) {
         StringBuilder sb = new StringBuilder();
         for(RecordingEvent event : events) {
@@ -197,7 +202,7 @@ public class EspressoTestGenerator implements TestGenerator {
             "    }" +
             "    @Override" +
             "    protected boolean matchesSafely(CLASS obj) {\n" +
-            "        /* TODO Implement comparison logic */\n" +
+            "        /* TODO Implement comparison logic, see details at http://droidtestlab.com/adapterView.html  */\n" +
             "        return false;" +
             "    }" +
             "}))).inAdapterView(withId(ADAPTER_ID)).";

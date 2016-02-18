@@ -38,6 +38,9 @@ public class ActionTest {
 
         PressBackAction pressBackAction = new PressBackAction();
         Assert.assertEquals("action=pressback", pressBackAction.toString());
+
+        ScrollToAction scrollToAction = new ScrollToAction();
+        Assert.assertEquals("action=scrollTo", scrollToAction.toString());
     }
 
     @Test
@@ -64,6 +67,8 @@ public class ActionTest {
         SwipeRightAction swipeRightAction = (SwipeRightAction) Action.fromString("action=swiperight");
 
         PressBackAction pressBackAction = (PressBackAction) Action.fromString("action=pressback");
+
+        ScrollToAction scrollToAction = (ScrollToAction) Action.fromString("action=scrollTo");
     }
 
 }

@@ -28,4 +28,5 @@ public interface TestGenerator {
     void generateActon(StringBuilder sb, PressBackAction action, Subject subject);
     void generateActon(StringBuilder sb, ScrollToPositionAction action, Subject subject);
     void generateActon(StringBuilder sb, SelectViewPagerPageAction action, Subject subject);
+    void generateActon(StringBuilder sb, ScrollToAction action, Subject subject);
 }
