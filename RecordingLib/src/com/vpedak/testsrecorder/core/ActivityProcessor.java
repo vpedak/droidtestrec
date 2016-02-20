@@ -461,21 +461,25 @@ public class ActivityProcessor {
     public ResolveSubjectResult resolveSubject(View view) {
         String viewId = resolveId(view.getId());
         if (viewId != null) {
-            if (view.getParent() instanceof RecyclerView) {
-                RecyclerView parentView = (RecyclerView) view.getParent();
+            try {
+                if (view.getParent() instanceof RecyclerView) {
+                    RecyclerView parentView = (RecyclerView) view.getParent();
 
-                String parentId = resolveId(parentView.getId());
-                if (parentId != null) {
-                    for (int i = 0; i < parentView.getChildCount(); i++) {
-                        if (view.equals(parentView.getChildAt(i))) {
-                            RecordingEvent scrollToEvent =
+                    String parentId = resolveId(parentView.getId());
+                    if (parentId != null) {
+                        for (int i = 0; i < parentView.getChildCount(); i++) {
+                            if (view.equals(parentView.getChildAt(i))) {
+                                RecordingEvent scrollToEvent =
                                         new RecordingEvent(String.valueOf(System.currentTimeMillis()),
                                                 new com.vpedak.testsrecorder.core.events.View(parentId),
                                                 new ScrollToPositionAction(i));
-                            return new ResolveSubjectResult(new ParentView(parentId, i), scrollToEvent);
+                                return new ResolveSubjectResult(new ParentView(parentId, i), scrollToEvent);
+                            }
                         }
                     }
                 }
+            } catch (NoClassDefFoundError e) {
+                // RecyclerView is not used in this project, ignore this
             }
 
             if (isInsideScrollView(view)) {
@@ -494,11 +498,15 @@ public class ActivityProcessor {
                 for (int i = 0; i < parentView.getChildCount(); i++) {
                     if (view.equals(parentView.getChildAt(i))) {
                         RecordingEvent scrollToEvent = null;
-                        if (parentView instanceof RecyclerView) {
-                            scrollToEvent =
-                                    new RecordingEvent(String.valueOf(System.currentTimeMillis()),
-                                            new com.vpedak.testsrecorder.core.events.View(parentId),
-                                            new ScrollToPositionAction(i));
+                        try {
+                            if (parentView instanceof RecyclerView) {
+                                scrollToEvent =
+                                        new RecordingEvent(String.valueOf(System.currentTimeMillis()),
+                                                new com.vpedak.testsrecorder.core.events.View(parentId),
+                                                new ScrollToPositionAction(i));
+                            }
+                        } catch (NoClassDefFoundError e) {
+                            // RecyclerView is not used in this project, ignore this
                         }
                         return new ResolveSubjectResult(new ParentView(parentId, i), scrollToEvent);
                     }
