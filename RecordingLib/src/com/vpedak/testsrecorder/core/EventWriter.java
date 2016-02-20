@@ -13,21 +13,28 @@ public class EventWriter {
     public String tag;
     private List<RecordingEvent> delayedEvents = new ArrayList<RecordingEvent>();
     private EventWriterListener listener;
+    private long lastTime;
 
     public EventWriter(long uniqueId, EventWriterListener listener) {
         this.uniqueId = uniqueId;
         this.listener = listener;
         tag = ANDRIOD_TEST_RECORDER+uniqueId;
+        lastTime = System.currentTimeMillis();
     }
 
     public synchronized void writeEvent(RecordingEvent event) {
+        long diff = System.currentTimeMillis() - lastTime;
+        lastTime = System.currentTimeMillis();
+
         if (delayedEvents.size() > 0) {
             for(RecordingEvent delayedEvent : delayedEvents) {
+                delayedEvent.setTime(diff);
                 Log.d(tag, delayedEvent.toString());
                 listener.onEventWritten(delayedEvent);
             }
             delayedEvents.clear();
         }
+        event.setTime(diff);
         Log.d(tag, event.toString());
         listener.onEventWritten(event);
     }
@@ -36,7 +43,7 @@ public class EventWriter {
         delayedEvents.add(delayedEvent);
     }
 
-    public static interface EventWriterListener {
+    public interface EventWriterListener {
         void onEventWritten(RecordingEvent event);
     }
 }

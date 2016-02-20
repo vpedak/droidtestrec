@@ -167,6 +167,9 @@ public class EspressoTestGenerator implements TestGenerator {
     private String currentGroup = null;
 
     public void generateEvent(StringBuilder sb, RecordingEvent event) {
+
+        // sb.append("// time - "+event.getTime()+"/n");
+
         if (event.getGroup() != null) {
             if (!event.getGroup().equals(currentGroup)) {
                 sb.append("\n");
