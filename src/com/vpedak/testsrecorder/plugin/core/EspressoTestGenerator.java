@@ -12,6 +12,11 @@ public class EspressoTestGenerator implements TestGenerator {
     private boolean wasParentView = false;
     private boolean wasScrollToPosition = false;
     private boolean wasSelectViewPagerPage = false;
+    private boolean generateDelays = false;
+
+    public EspressoTestGenerator(boolean generateDelays) {
+        this.generateDelays = generateDelays;
+    }
 
     @Override
     public String generate(String activityClassName, String testClassName, String packageName, List<RecordingEvent> events) {
@@ -32,6 +37,9 @@ public class EspressoTestGenerator implements TestGenerator {
         }
         if (wasSelectViewPagerPage) {
             additions.append("\n\n").append(selectViewPagerPageTemplate);
+        }
+        if (generateDelays) {
+            additions.append("\n\n").append(idlingResourceTemplate);
         }
 
         if (additions.length() > 0) {
@@ -158,26 +166,51 @@ public class EspressoTestGenerator implements TestGenerator {
 
     private String generateBody(List<RecordingEvent> events) {
         StringBuilder sb = new StringBuilder();
+
+        if (generateDelays) {
+            sb.append("\t// Used to provide time delays between actions, see details at http://droidtestlab.com/delay.html \n");
+            sb.append("IdlingResource idlingResource;\n");
+        }
+
         for(RecordingEvent event : events) {
             event.accept(sb, this);
+        }
+
+        if (generateDelays) {
+            sb.append("stopTiming(idlingResource);\n");
         }
         return sb.toString();
     }
 
     private String currentGroup = null;
+    boolean firstEvent = true;
 
     public void generateEvent(StringBuilder sb, RecordingEvent event) {
-
-        // sb.append("// time - "+event.getTime()+"/n");
-
         if (event.getGroup() != null) {
             if (!event.getGroup().equals(currentGroup)) {
-                sb.append("\n");
+                if (generateDelays) {
+                    if (!firstEvent) {
+                        sb.append("stopTiming(idlingResource);\n");
+                    }
+                    sb.append("\n");
+                    sb.append("idlingResource = startTiming(").append(calculateIdleTime(event)).append(");\n");
+                } else {
+                    sb.append("\n");
+                }
                 currentGroup = event.getGroup();
             }
         } else {
+            if (generateDelays) {
+                if (!firstEvent) {
+                    sb.append("stopTiming(idlingResource);\n");
+                }
+                sb.append("\n");
+                sb.append("idlingResource = startTiming(").append(calculateIdleTime(event)).append(");\n");
+            } else {
+                sb.append("\n");
+            }
+
             currentGroup = null;
-            sb.append("\n");
         }
 
         if (event.getDescription() != null) {
@@ -187,6 +220,8 @@ public class EspressoTestGenerator implements TestGenerator {
         event.getSubject().accept(sb, this);
         event.getAction().accept(sb, this, event.getSubject());
         sb.append(";\n");
+
+        firstEvent = false;
     }
 
     private StringBuilder replace(StringBuilder sb, String from, String to) {
@@ -195,6 +230,10 @@ public class EspressoTestGenerator implements TestGenerator {
             sb.replace(index, index + from.length(), to);
         }
         return sb;
+    }
+
+    private long calculateIdleTime(RecordingEvent event) {
+        return (long) (Math.ceil(event.getTime()/100) * 100);
     }
 
     private String dataTemplate =
@@ -269,4 +308,45 @@ public class EspressoTestGenerator implements TestGenerator {
                     "            }\n" +
                     "        };\n" +
                     "    }\n";
+
+    private String idlingResourceTemplate =
+            "\t // See details at http://droidtestlab.com/delay.html \n" +
+            "    public IdlingResource startTiming(long time) {\n" +
+                    "        IdlingResource idlingResource = new ElapsedTimeIdlingResource(time);\n" +
+                    "        Espresso.registerIdlingResources(idlingResource);\n" +
+                    "        return idlingResource;\n" +
+                    "    }\n" +
+                    "    public void stopTiming(IdlingResource idlingResource) {\n" +
+                    "        Espresso.unregisterIdlingResources(idlingResource);\n" +
+                    "    }\n" +
+                    "    public class ElapsedTimeIdlingResource implements IdlingResource {\n" +
+                    "        private long startTime;\n" +
+                    "        private final long waitingTime;\n" +
+                    "        private ResourceCallback resourceCallback;\n" +
+                    "\n" +
+                    "        public ElapsedTimeIdlingResource(long waitingTime) {\n" +
+                    "            this.startTime = System.currentTimeMillis();\n" +
+                    "            this.waitingTime = waitingTime;\n" +
+                    "        }\n" +
+                    "\n" +
+                    "        @Override\n" +
+                    "        public String getName() {\n" +
+                    "            return ElapsedTimeIdlingResource.class.getName() + \":\" + waitingTime;\n" +
+                    "        }\n" +
+                    "\n" +
+                    "        @Override\n" +
+                    "        public boolean isIdleNow() {\n" +
+                    "            long elapsed = System.currentTimeMillis() - startTime;\n" +
+                    "            boolean idle = (elapsed >= waitingTime);\n" +
+                    "            if (idle) {\n" +
+                    "                resourceCallback.onTransitionToIdle();\n" +
+                    "            }\n" +
+                    "            return idle;\n" +
+                    "        }\n" +
+                    "\n" +
+                    "        @Override\n" +
+                    "        public void registerIdleTransitionCallback(ResourceCallback resourceCallback) {\n" +
+                    "            this.resourceCallback = resourceCallback;\n" +
+                    "        }\n" +
+                    "    }";
 }

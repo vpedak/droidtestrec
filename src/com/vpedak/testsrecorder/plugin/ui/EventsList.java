@@ -20,6 +20,7 @@ import com.intellij.psi.codeStyle.CodeStyleManager;
 import com.intellij.refactoring.PackageWrapper;
 import com.intellij.refactoring.move.moveClassesOrPackages.MoveClassesOrPackagesUtil;
 import com.intellij.refactoring.util.RefactoringUtil;
+import com.intellij.ui.components.JBCheckBox;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.components.panels.VerticalLayout;
@@ -53,6 +54,7 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
     private PsiFile activityFile;
     private JTextField testClassField = new JTextField(20);
     private String activityClassName;
+    private JCheckBox timeCheckBox;
     private List<RecordingEvent> events = new ArrayList<RecordingEvent>();
 
     public EventsList() {
@@ -63,6 +65,12 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
         list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         pane = new JBScrollPane(list);
         add(pane);
+
+        JPanel tmp = new JPanel();
+        timeCheckBox = new JCheckBox("Generate delays between actions as it was recorded.");
+        tmp.add(timeCheckBox);
+        add(tmp);
+
         final JButton generate = new JButton("Generate Code", IconLoader.getIcon("icons/gen.png"));
         generate.addActionListener(new AbstractAction() {
             @Override
@@ -70,7 +78,7 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
                 generate();
             }
         });
-        JPanel tmp = new JPanel();
+        tmp = new JPanel();
         JLabel testLabel = new JLabel("Test class: ", SwingConstants.RIGHT);
         testLabel.setMaximumSize(new Dimension(testLabel.getPreferredSize().width + 20, testLabel.getPreferredSize().height));
         tmp.add(testLabel);
@@ -154,7 +162,7 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
                     }
                     VirtualFile testVirtualFile = testFile.getVirtualFile();
 
-                    TestGenerator testGenerator = new EspressoTestGenerator();
+                    TestGenerator testGenerator = new EspressoTestGenerator(timeCheckBox.isSelected());
 
                     String code = testGenerator.generate(activityClassName, testClassName, packageName, events);
                     com.intellij.openapi.vfs.VfsUtil.saveText(testVirtualFile, code);
@@ -350,7 +358,7 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
 
     @Override
     public void componentResized(ComponentEvent e) {
-        pane.setPreferredSize(new Dimension(getWidth(), getHeight() - 110));
+        pane.setPreferredSize(new Dimension(getWidth(), getHeight() - 150));
     }
 
     @Override
