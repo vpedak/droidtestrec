@@ -10,6 +10,8 @@ import com.intellij.execution.configurations.ConfigurationFactory;
 import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.process.ProcessHandler;
 import com.intellij.facet.FacetManager;
+import com.intellij.ide.util.PropertiesComponent;
+import com.intellij.notification.*;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.application.ApplicationManager;
@@ -41,6 +43,7 @@ import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.HyperlinkEvent;
 import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
@@ -86,6 +89,8 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
     }
 
     public void actionPerformed(final AnActionEvent event) {
+        notifyIfNecessary();
+
         Project project = (Project) event.getData(PlatformDataKeys.PROJECT);
 
         ToolWindowManager toolWindowManager = ToolWindowManager.getInstance(project);
@@ -199,6 +204,33 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             new CheckNewVersionThread(this).start();
         }
         this.toolWindow.activate(null, true, true);
+    }
+
+    private void notifyIfNecessary() {
+        int numberOfRun = PropertiesComponent.getInstance().getOrInitInt(TOOL_WINDOW_ID, 1);
+
+        numberOfRun++;
+        PropertiesComponent.getInstance().setValue(TOOL_WINDOW_ID, String.valueOf(numberOfRun));
+
+        if (numberOfRun % 5 == 0) {
+            Notifications.Bus.notify(new Notification(TOOL_WINDOW_ID, "Do you like Android Test Recorder?",
+                    "Please <a href='http://droidtestlab.com/share.html'>share your experience with your friends</a> to give me the opportunity to make it better.",
+                    NotificationType.INFORMATION,
+                    new
+                            NotificationListener() {
+                                @Override
+                                public void hyperlinkUpdate(Notification notification, HyperlinkEvent hyperlinkEvent) {
+                                    Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
+                                    if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
+                                        try {
+                                            desktop.browse(new URL("http://droidtestlab.com/share.html").toURI());
+                                        } catch (Exception ex) {
+                                            ex.printStackTrace();
+                                        }
+                                    }
+                                }
+                            }));
+        }
     }
 
     private void openHelpWindow() {
