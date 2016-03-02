@@ -51,6 +51,10 @@ public class EspressoTestGenerator implements TestGenerator {
         return sb.toString();
     }
 
+    public boolean wasAdditionMethods() {
+        return wasParentView || wasScrollToPosition || wasSelectViewPagerPage;
+    }
+
     @Override
     public void generateSubject(StringBuilder sb, Subject subject) {
         // do nothing
@@ -164,7 +168,7 @@ public class EspressoTestGenerator implements TestGenerator {
         sb.append("perform(scrollTo())");
     }
 
-    private String generateBody(List<RecordingEvent> events) {
+    public String generateBody(List<RecordingEvent> events) {
         StringBuilder sb = new StringBuilder();
 
         if (generateDelays) {

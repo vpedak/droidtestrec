@@ -38,9 +38,9 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ComponentEvent;
-import java.awt.event.ComponentListener;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
+import java.awt.event.*;
 import java.io.*;
 import java.util.*;
 import java.util.List;
@@ -60,9 +60,46 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
     public EventsList() {
         super(new VerticalLayout(5));
         listModel = new DefaultListModel();
-        list = new JBList(listModel);
+        final EspressoTestGenerator testGenerator = new EspressoTestGenerator(false);
+        list = new JBList(listModel) {
+            @Override
+            public String getToolTipText(MouseEvent event) {
+                int idx = locationToIndex(event.getPoint());
+                if (idx != -1) {
+                    RecordingEvent recordingEvent = (RecordingEvent) getModel().getElementAt(idx);
+                    List<RecordingEvent> tmp = new ArrayList<RecordingEvent>();
+                    tmp.add(recordingEvent);
+                    if (recordingEvent.getGroup() != null) {
+                        int pos = events.indexOf(recordingEvent);
+                        tmp.add(events.get(pos+1));
+                    }
+                    return testGenerator.generateBody(tmp);
+                } else {
+                    return super.getToolTipText(event);
+                }
+            }
+        };
         list.setCellRenderer(new MyRenderer());
-        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        list.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+
+        list.addMouseListener(new MouseAdapter() {
+            public void mousePressed(MouseEvent e) {
+                if (e.isPopupTrigger() && list.getSelectedIndex() != -1) {
+                    JPopupMenu menu = new JPopupMenu();
+                    JMenuItem item = new JMenuItem("Generate selected actions to clipboard");
+                    item.addActionListener(new ActionListener() {
+                        public void actionPerformed(ActionEvent e) {
+                            generateSelected();
+                        }
+                    });
+                    menu.add(item);
+                    menu.show(EventsList.this, e.getX()+20, list.getCellBounds(
+                            list.getSelectedIndex() ,
+                            list.getSelectedIndex() ).y+20);
+                }
+            }
+        });
+
         pane = new JBScrollPane(list);
         add(pane);
 
@@ -121,8 +158,38 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
         addComponentListener(this);
     }
 
-    public void newRecording(Project project) {
-        this.project = project;
+    private void generateSelected() {
+        List<RecordingEvent> selected = list.getSelectedValuesList();
+
+        int start = events.indexOf(selected.get(0));
+
+        RecordingEvent last = selected.get(selected.size()-1);
+        int end;
+        if (last.getGroup() == null) {
+            end = events.indexOf(last);
+        } else {
+            String grp = last.getGroup();
+            for (end = events.indexOf(last); end < events.size(); end++) {
+                if (!grp.equals(events.get(end).getGroup())) {
+                    break;
+                }
+            }
+            end--;
+        }
+
+        List<RecordingEvent> eventsToGenerate = events.subList(start, end+1);
+
+        EspressoTestGenerator testGenerator = new EspressoTestGenerator(timeCheckBox.isSelected());
+
+        String code = testGenerator.generateBody(eventsToGenerate);
+
+        if (testGenerator.wasAdditionMethods()) {
+            code = "\t// Custom methods were used in generated code, see details at http://droidtestlab.com/additions.html \n" + code;
+        }
+
+        StringSelection stringSelection = new StringSelection(code);
+        Clipboard clpbrd = Toolkit.getDefaultToolkit().getSystemClipboard();
+        clpbrd.setContents(stringSelection, stringSelection);
     }
 
     public void clear(Project project, Module module, PsiFile activityFile) {
@@ -374,6 +441,10 @@ public class EventsList extends JPanel implements EventReader.EventListener, Com
     }
 
     class MyRenderer extends DefaultListCellRenderer {
+        public MyRenderer() {
+            setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        }
+
         public Component getListCellRendererComponent(JList list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
             Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
             RecordingEvent event = (RecordingEvent) value;
