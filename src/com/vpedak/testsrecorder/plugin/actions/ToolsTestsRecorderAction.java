@@ -209,27 +209,31 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
     private void notifyIfNecessary() {
         int numberOfRun = PropertiesComponent.getInstance().getOrInitInt(TOOL_WINDOW_ID, 1);
 
-        numberOfRun++;
-        PropertiesComponent.getInstance().setValue(TOOL_WINDOW_ID, String.valueOf(numberOfRun));
+        if (numberOfRun < 25) {
+            numberOfRun++;
+            PropertiesComponent.getInstance().setValue(TOOL_WINDOW_ID, String.valueOf(numberOfRun));
 
-        if (numberOfRun % 5 == 0) {
-            Notifications.Bus.notify(new Notification(TOOL_WINDOW_ID, "Do you like Android Test Recorder?",
-                    "Please <a href='http://droidtestlab.com/share.html'>share your experience with your friends</a> to give me the opportunity to make it better.",
-                    NotificationType.INFORMATION,
-                    new
-                            NotificationListener() {
-                                @Override
-                                public void hyperlinkUpdate(Notification notification, HyperlinkEvent hyperlinkEvent) {
-                                    Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
-                                    if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
-                                        try {
-                                            desktop.browse(new URL("http://droidtestlab.com/share.html").toURI());
-                                        } catch (Exception ex) {
-                                            ex.printStackTrace();
+            if (numberOfRun % 5 == 0) {
+                Notifications.Bus.notify(new Notification(TOOL_WINDOW_ID, "Do you like Android Test Recorder?",
+                        "Please <a href='http://droidtestlab.com/share.html'>share your experience with your friends</a> to give me the opportunity to make it better.",
+                        NotificationType.INFORMATION,
+                        new
+                                NotificationListener() {
+                                    @Override
+                                    public void hyperlinkUpdate(Notification notification, HyperlinkEvent hyperlinkEvent) {
+                                        PropertiesComponent.getInstance().setValue(TOOL_WINDOW_ID, String.valueOf(30));
+
+                                        Desktop desktop = Desktop.isDesktopSupported() ? Desktop.getDesktop() : null;
+                                        if (desktop != null && desktop.isSupported(Desktop.Action.BROWSE)) {
+                                            try {
+                                                desktop.browse(new URL("http://droidtestlab.com/share.html").toURI());
+                                            } catch (Exception ex) {
+                                                ex.printStackTrace();
+                                            }
                                         }
                                     }
-                                }
-                            }));
+                                }));
+            }
         }
     }
 
