@@ -51,6 +51,23 @@ public class ActivityProcessor {
         return eventWriter;
     }
 
+    public void processAllViews() {
+        View[] views = getWMViews();
+
+        for (int i = 0; i < views.length; i++) {
+            final View view = views[i];
+
+            if (!allViews.contains(view)) {
+                activity.runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        processView(view);
+                    }
+                });
+            }
+        }
+    }
+
     public void processActivity(final Activity activity) {
         this.activity = activity;
 
@@ -63,12 +80,6 @@ public class ActivityProcessor {
                 processView(view);
             }
         });
-    }
-
-    private void processViews(View[] views) {
-        for (int i = 0; i < views.length; i++) {
-            processView(views[i]);
-        }
     }
 
     private void processView(View view) {
@@ -155,14 +166,16 @@ public class ActivityProcessor {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
             }
+
             @Override
             public void onPageSelected(int position) {
                 ResolveSubjectResult result = resolveSubject(viewPager);
                 if (result != null) {
                     eventWriter.writeEvent(new RecordingEvent(result.getSubject(), new SelectViewPagerPageAction(position),
-                            "Select page "+position+" in " + getWidgetName(viewPager)+generateSubjectDescription(result.getSubject())));
+                            "Select page " + position + " in " + getWidgetName(viewPager) + generateSubjectDescription(result.getSubject())));
                 }
             }
+
             @Override
             public void onPageScrollStateChanged(int state) {
             }
@@ -392,7 +405,6 @@ public class ActivityProcessor {
                         }
                     }
                     finalListener.onClick(v);
-                    processViews(getWMViews());
                 }
             });
         }

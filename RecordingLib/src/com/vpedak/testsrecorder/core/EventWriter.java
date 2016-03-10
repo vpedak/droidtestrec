@@ -30,13 +30,12 @@ public class EventWriter {
             for(RecordingEvent delayedEvent : delayedEvents) {
                 delayedEvent.setTime(diff);
                 Log.d(tag, delayedEvent.toString());
-                listener.onEventWritten(delayedEvent);
             }
             delayedEvents.clear();
         }
         event.setTime(diff);
         Log.d(tag, event.toString());
-        listener.onEventWritten(event);
+        listener.onEventWritten();
     }
 
     public synchronized void addDelayedEvent(RecordingEvent delayedEvent) {
@@ -44,6 +43,6 @@ public class EventWriter {
     }
 
     public interface EventWriterListener {
-        void onEventWritten(RecordingEvent event);
+        void onEventWritten();
     }
 }

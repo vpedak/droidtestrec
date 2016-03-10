@@ -54,7 +54,7 @@ public class ActivityListener implements EventWriter.EventWriterListener {
     }
 
     public void start() {
-        new Timer().schedule(new ActivityTask(this), 200L, 200L);
+        new Timer().schedule(new ActivityTask(this), 300L, 300L);
     }
 
     public synchronized void check() {
@@ -86,10 +86,12 @@ public class ActivityListener implements EventWriter.EventWriterListener {
             activityProcessor.processActivity(activity);
         }
         wasEvent = false;
+
+        activityProcessor.processAllViews();
     }
 
     @Override
-    public synchronized void onEventWritten(RecordingEvent event) {
+    public synchronized void onEventWritten() {
         wasEvent = true;
     }
 
