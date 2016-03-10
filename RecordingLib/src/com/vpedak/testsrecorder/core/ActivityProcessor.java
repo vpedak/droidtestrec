@@ -335,6 +335,10 @@ public class ActivityProcessor {
     }
 
     private void processClick(final View view) {
+        if (view instanceof Spinner) {
+            return;
+        }
+
         View.OnClickListener listener = null;
         View.OnLongClickListener longListener = null;
         try {
