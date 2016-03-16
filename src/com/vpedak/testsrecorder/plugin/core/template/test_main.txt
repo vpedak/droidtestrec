@@ -27,6 +27,7 @@ import static android.support.test.espresso.matcher.ViewMatchers.withText;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static android.support.test.InstrumentationRegistry.*;
 
 import android.support.test.espresso.matcher.BoundedMatcher;
 import org.hamcrest.Description;
