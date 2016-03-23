@@ -4,6 +4,7 @@ import android.database.Cursor;
 import android.view.View;
 import android.widget.AdapterView;
 
+import android.widget.Spinner;
 import com.vpedak.testsrecorder.core.events.*;
 
 public class AdapterViewProcessor {
@@ -14,6 +15,10 @@ public class AdapterViewProcessor {
     }
 
     public void processView(final AdapterView adapterView) {
+        if (adapterView instanceof Spinner) {
+            return;
+        }
+
         final AdapterView.OnItemClickListener listener = adapterView.getOnItemClickListener();
         final AdapterView.OnItemLongClickListener longListener = adapterView.getOnItemLongClickListener();
 
