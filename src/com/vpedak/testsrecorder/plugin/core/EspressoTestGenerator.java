@@ -88,6 +88,12 @@ public class EspressoTestGenerator implements TestGenerator {
     }
 
     @Override
+    public void generateSubject(StringBuilder sb, ParentIdView subject) {
+        sb.append("onView(allOf(withParent(withId(").append(subject.getParentId()).
+                append(")), withId(").append(subject.getChildId()).append("))).");
+    }
+
+    @Override
     public void generateSubject(StringBuilder sb, Data subject) {
         if (subject.getValue() != null) {
             sb.append("onData(allOf(is(instanceOf(").append(subject.getClassName()).append(".class)), is(\"").

@@ -314,6 +314,9 @@ public class ActivityProcessor {
         } else if (subject instanceof  ParentView) {
             ParentView view = (ParentView) subject;
             return " with child index "+view.getChildIndex()+" of parent with id "+view.getParentId();
+        } else if (subject instanceof  ParentIdView) {
+            ParentIdView view = (ParentIdView) subject;
+            return " with child id "+view.getChildId()+" of parent with id "+view.getParentId();
         }
         return "";
     }
@@ -330,13 +333,15 @@ public class ActivityProcessor {
                 if (result != null) {
                     String text = view.getText().toString();
                     String descr = "Set text to '" + text + "' in " + getWidgetName(view) + generateSubjectDescription(result.getSubject());
+                    String delayedId = result.getSubject().toString();
                     if (result.getScrollToEvent() != null) {
                         result.getScrollToEvent().setDescription(descr);
-                        eventWriter.addDelayedEvent(result.getScrollToEvent());
-                        eventWriter.addDelayedEvent(new RecordingEvent(result.getScrollToEvent().getGroup(),
+                        eventWriter.addDelayedEvent(delayedId+"_scroll", result.getScrollToEvent());
+                        eventWriter.addDelayedEvent(delayedId, new RecordingEvent(result.getScrollToEvent().getGroup(),
                                 result.getSubject(), new ReplaceTextAction(text)));
                     } else {
-                        eventWriter.addDelayedEvent(new RecordingEvent(result.getSubject(), new ReplaceTextAction(text), descr));
+                        eventWriter.addDelayedEvent(delayedId, new RecordingEvent(result.getSubject(), new ReplaceTextAction
+                                (text), descr));
                     }
                 }
             }
@@ -375,9 +380,6 @@ public class ActivityProcessor {
         }
 
         if (view.isClickable() && listener != null) {
-
-            Log.d("123", "view - " + view + " listener - " + listener);
-
             final View.OnClickListener finalListener = listener;
             view.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -462,7 +464,7 @@ public class ActivityProcessor {
         return null;
     }
 
-    private boolean isInsideScrollView(View view) {
+    private boolean isInsideScrollView(String viewId, View view) {
         ViewParent parent = view.getParent();
         while (parent != null) {
             if (parent instanceof ScrollView || parent instanceof HorizontalScrollView) {
@@ -498,13 +500,15 @@ public class ActivityProcessor {
                 // RecyclerView is not used in this project, ignore this
             }
 
-            if (isInsideScrollView(view)) {
+            Subject subject = checkIdDuplication(viewId, view);
+
+            if (isInsideScrollView(viewId, view)) {
                 RecordingEvent scrollToEvent = new RecordingEvent(String.valueOf(System.currentTimeMillis()),
                         new com.vpedak.testsrecorder.core.events.View(viewId),
                         new ScrollToAction());
-                return new ResolveSubjectResult(new com.vpedak.testsrecorder.core.events.View(viewId), scrollToEvent);
+                return new ResolveSubjectResult(subject, scrollToEvent);
             } else {
-                return new ResolveSubjectResult(new com.vpedak.testsrecorder.core.events.View(viewId));
+                return new ResolveSubjectResult(subject);
             }
         } else if (view.getParent() != null && view.getParent() instanceof ViewGroup) {
             ViewGroup parentView = (ViewGroup) view.getParent();
@@ -531,6 +535,50 @@ public class ActivityProcessor {
         }
 
         return null;
+    }
+
+    // See issue #18
+    private Subject checkIdDuplication(String viewId, View view) {
+        if (view.getParent() != null && view.getParent() instanceof View &&
+                view.getParent().getParent() != null && view.getParent().getParent() instanceof ViewGroup) {
+            String parentId = resolveId(((View) view.getParent()).getId());
+
+            if (parentId != null) {
+                ViewGroup grandParentView = (ViewGroup) view.getParent().getParent();
+
+                if (isIdDuplicated(grandParentView, view.getId(), new IntegerHolder())) {
+                    return new ParentIdView(parentId, viewId);
+                }
+            }
+        }
+
+        return new com.vpedak.testsrecorder.core.events.View(viewId);
+    }
+
+    private boolean isIdDuplicated(ViewGroup view, int viewId, IntegerHolder num) {
+        for (int i = 0; i < view.getChildCount(); i++) {
+            View child = view.getChildAt(i);
+
+            if (child instanceof ViewGroup) {
+                boolean tst = isIdDuplicated((ViewGroup) child, viewId, num);
+                if (tst) {
+                    return true;
+                }
+            } else {
+                if (child.getId() == viewId) {
+                    num.value++;
+                    if (num.value > 1) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        if (view.getId() == viewId) {
+            num.value++;
+        }
+
+        return num.value > 1;
     }
 
     @Nullable
@@ -624,5 +672,9 @@ public class ActivityProcessor {
         public RecordingEvent getScrollToEvent() {
             return scrollToEvent;
         }
+    }
+
+    public static class IntegerHolder {
+        public int value = 0;
     }
 }

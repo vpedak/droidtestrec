@@ -18,6 +18,9 @@ public class SubjectTest {
         ParentView parentView = new ParentView("parentId", 1);
         Assert.assertEquals("parentView=parentId#1", parentView.toString());
 
+        ParentIdView parentIdView = new ParentIdView("parentId", "childId");
+        Assert.assertEquals("parentIdView=parentId#childId", parentIdView.toString());
+
         OptionsMenu optionsMenu = new OptionsMenu();
         Assert.assertEquals("optionsMenu", optionsMenu.toString());
 
@@ -43,6 +46,10 @@ public class SubjectTest {
         ParentView parentView = (ParentView) Subject.fromString("parentView=parentId#1");
         Assert.assertEquals("parentId", parentView.getParentId());
         Assert.assertEquals(1, parentView.getChildIndex());
+
+        ParentIdView parentIdView = (ParentIdView) Subject.fromString("parentIdView=parentId#childId");
+        Assert.assertEquals("parentId", parentIdView.getParentId());
+        Assert.assertEquals("childId", parentIdView.getChildId());
 
         OptionsMenu optionsMenu = (OptionsMenu) Subject.fromString("optionsMenu");
 

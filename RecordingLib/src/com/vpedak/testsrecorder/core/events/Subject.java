@@ -23,6 +23,9 @@ public abstract class Subject {
         } else if (subject instanceof ParentView) {
             ParentView parentView = (ParentView) subject;
             return "parentView=" + parentView.getParentId() + "#" + parentView.getChildIndex();
+        } else if (subject instanceof ParentIdView) {
+            ParentIdView parentView = (ParentIdView) subject;
+            return "parentIdView=" + parentView.getParentId() + "#" + parentView.getChildId();
         } else if (subject instanceof OptionsMenu) {
             return "optionsMenu";
         } else if (subject instanceof Espresso) {
@@ -52,6 +55,12 @@ public abstract class Subject {
             String idxStr = arr[1];
             int idx = Integer.parseInt(idxStr);
             return new ParentView(parentId, idx);
+        } else if (str.startsWith("parentIdView")) {
+            String tmp = str.substring(str.indexOf("=") + 1);
+            String[] arr = tmp.split("[#]");
+            String parentId = arr[0];
+            String childId = arr[1];
+            return new ParentIdView(parentId, childId);
         } else if (str.startsWith("optionsMenu")) {
             return new OptionsMenu();
         } else if (str.startsWith("espresso")) {

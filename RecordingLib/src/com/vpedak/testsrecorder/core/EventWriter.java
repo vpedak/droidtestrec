@@ -5,13 +5,15 @@ import android.util.Log;
 import com.vpedak.testsrecorder.core.events.RecordingEvent;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class EventWriter {
     private long uniqueId;
     public static final String ANDRIOD_TEST_RECORDER = "AndriodTestRecorder";
     public String tag;
-    private List<RecordingEvent> delayedEvents = new ArrayList<RecordingEvent>();
+    private Map<String, RecordingEvent> delayedEvents = new HashMap<String, RecordingEvent>();
     private EventWriterListener listener;
     private long lastTime;
 
@@ -27,7 +29,7 @@ public class EventWriter {
         lastTime = System.currentTimeMillis();
 
         if (delayedEvents.size() > 0) {
-            for(RecordingEvent delayedEvent : delayedEvents) {
+            for(RecordingEvent delayedEvent : delayedEvents.values()) {
                 delayedEvent.setTime(diff);
                 Log.d(tag, delayedEvent.toString());
             }
@@ -38,8 +40,8 @@ public class EventWriter {
         listener.onEventWritten();
     }
 
-    public synchronized void addDelayedEvent(RecordingEvent delayedEvent) {
-        delayedEvents.add(delayedEvent);
+    public synchronized void addDelayedEvent(String id, RecordingEvent delayedEvent) {
+        delayedEvents.put(id, delayedEvent);
     }
 
     public interface EventWriterListener {
