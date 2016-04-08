@@ -504,7 +504,7 @@ public class ActivityProcessor {
 
             if (isInsideScrollView(viewId, view)) {
                 RecordingEvent scrollToEvent = new RecordingEvent(String.valueOf(System.currentTimeMillis()),
-                        new com.vpedak.testsrecorder.core.events.View(viewId),
+                        subject,
                         new ScrollToAction());
                 return new ResolveSubjectResult(subject, scrollToEvent);
             } else {
