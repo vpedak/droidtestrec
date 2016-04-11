@@ -53,6 +53,8 @@ import java.net.URL;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.AnAction implements TestListener {
     public static final String TOOL_WINDOW_ID = "vpedak.tests.recorder,id";
@@ -322,16 +324,23 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             final List<BuildFileStatement> dependencies = this.buildFile.getDependencies();
             final Dependency dependency = findDepRecord(dependencies);
             if (dependency != null) {
+                final CountDownLatch latch = new CountDownLatch(1);
                 CommandProcessor.getInstance().executeCommand(this.project, new Runnable() {
                     public void run() {
                         dependencies.remove(dependency);
                         ApplicationManager.getApplication().runWriteAction(new Runnable() {
                             public void run() {
                                 ToolsTestsRecorderAction.this.buildFile.setValue(BuildFileKey.DEPENDENCIES, dependencies);
+                                latch.countDown();
                             }
                         });
                     }
                 }, null, null);
+                try {
+                    latch.await(5, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    ; // ignore
+                }
             }
         }
         if (this.testVirtualFile != null) {
@@ -379,16 +388,23 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
 
         Dependency dependency = findDepRecord(dependencies);
         if (dependency == null) {
+            final CountDownLatch latch = new CountDownLatch(1);
             CommandProcessor.getInstance().executeCommand(this.project, new Runnable() {
                 public void run() {
                     dependencies.add(new Dependency(com.android.tools.idea.gradle.parser.Dependency.Scope.COMPILE, Dependency.Type.FILES, ToolsTestsRecorderAction.this.jarPath));
                     ApplicationManager.getApplication().runWriteAction(new Runnable() {
                         public void run() {
                             ToolsTestsRecorderAction.this.buildFile.setValue(BuildFileKey.DEPENDENCIES, dependencies);
+                            latch.countDown();
                         }
                     });
                 }
             }, null, null);
+            try {
+                latch.await(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                ; // ignore
+            }
         }
 
         uniqueId = System.currentTimeMillis();
