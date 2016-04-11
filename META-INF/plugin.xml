@@ -26,6 +26,7 @@
 
   <extensions defaultExtensionNs="com.intellij">
     <!-- Add your extensions here -->
+    <applicationConfigurable  instance="com.vpedak.testsrecorder.plugin.ui.PluginConfiguration"></applicationConfigurable>
   </extensions>
 
   <application-components>

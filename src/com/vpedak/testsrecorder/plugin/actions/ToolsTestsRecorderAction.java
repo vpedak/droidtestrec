@@ -36,6 +36,7 @@ import com.vpedak.testsrecorder.plugin.core.Templates;
 import com.vpedak.testsrecorder.plugin.ui.ActivitiesComboBoxModel;
 import com.vpedak.testsrecorder.plugin.ui.EventsList;
 import com.vpedak.testsrecorder.plugin.ui.ModulesComboBoxModel;
+import com.vpedak.testsrecorder.plugin.ui.PluginConfiguration;
 import org.jetbrains.android.dom.manifest.Activity;
 import org.jetbrains.android.facet.AndroidFacet;
 
@@ -444,7 +445,13 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
         }
 
         com.intellij.execution.RunnerAndConfigurationSettings rcs = runManager.createConfiguration(configuration, factory);
-        rcs.setTemporary(true);
+        if (PluginConfiguration.isLeaveRunConfiguration()) {
+            rcs.setTemporary(false);
+            runManager.addConfiguration(rcs, true);
+        } else {
+            rcs.setTemporary(true);
+        }
+
         ExecutionManager executionManager = ExecutionManager.getInstance(this.project);
         executionManager.restartRunProfile(this.project, com.intellij.execution.executors.DefaultRunExecutor.getRunExecutorInstance(), com.intellij.execution.DefaultExecutionTarget.INSTANCE, rcs, (ProcessHandler) null);
         this.executionChecker = new ExecutionChecker(executionManager, runConfigName, this);
