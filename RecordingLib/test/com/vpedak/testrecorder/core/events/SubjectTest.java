@@ -12,6 +12,9 @@ public class SubjectTest {
         View view = new View("viewId");
         Assert.assertEquals("view=viewId", view.toString());
 
+        DisplayedView displayedView = new DisplayedView("viewId");
+        Assert.assertEquals("displayedView=viewId", displayedView.toString());
+
         MenuItem menuItem = new MenuItem("title", "menuId");
         Assert.assertEquals("menuItem=menuId#title", menuItem.toString());
 
@@ -38,6 +41,9 @@ public class SubjectTest {
     public void testDeserialization() {
         View view = (View) Subject.fromString("view=viewId");
         Assert.assertEquals("viewId", view.getId());
+
+        DisplayedView displayedView = (DisplayedView) Subject.fromString("displayedView=viewId");
+        Assert.assertEquals("viewId", displayedView.getId());
 
         MenuItem menuItem = (MenuItem) Subject.fromString("menuItem=menuId#title");
         Assert.assertEquals("menuId", menuItem.getId());

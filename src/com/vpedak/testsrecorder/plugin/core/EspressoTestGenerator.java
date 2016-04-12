@@ -72,6 +72,11 @@ public class EspressoTestGenerator implements TestGenerator {
     }
 
     @Override
+    public void generateSubject(StringBuilder sb, DisplayedView subject) {
+        sb.append("onView(allOf(isDisplayed(),withId(").append(subject.getId()).append("))).");
+    }
+
+    @Override
     public void generateSubject(StringBuilder sb, OptionsMenu subject) {
         sb.append("openActionBarOverflowOrOptionsMenu(getInstrumentation().getTargetContext())");
     }

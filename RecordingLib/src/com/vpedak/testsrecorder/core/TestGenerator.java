@@ -11,6 +11,7 @@ public interface TestGenerator {
 
     void generateSubject(StringBuilder sb, Subject subject);
     void generateSubject(StringBuilder sb, View subject);
+    void generateSubject(StringBuilder sb, DisplayedView subject);
     void generateSubject(StringBuilder sb, OptionsMenu subject);
     void generateSubject(StringBuilder sb, MenuItem subject);
     void generateSubject(StringBuilder sb, ParentView subject);

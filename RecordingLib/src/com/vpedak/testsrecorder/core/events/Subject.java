@@ -33,6 +33,9 @@ public abstract class Subject {
         } else if (subject instanceof Data) {
             Data data = (Data) subject;
             return "data="+data.getAdapterId()+"#"+data.getClassName()+(data.getValue()==null?"":"#"+data.getValue());
+        } else if (subject instanceof DisplayedView) {
+            DisplayedView view = (DisplayedView) subject;
+            return "displayedView=" + view.getId();
         } else {
             throw new RuntimeException("Unknown subject - " + subject.getClass());
         }
@@ -69,14 +72,17 @@ public abstract class Subject {
             String tmp = str.substring(str.indexOf("=") + 1);
             int pos1 = tmp.indexOf("#");
             String adapterId = tmp.substring(0, pos1);
-            int pos2 = tmp.indexOf("#", pos1+1);
+            int pos2 = tmp.indexOf("#", pos1 + 1);
             if (pos2 != -1) {
-                String className = tmp.substring(pos1+1, pos2);
+                String className = tmp.substring(pos1 + 1, pos2);
                 String value = tmp.substring(pos2 + 1, tmp.length());
                 return new Data(adapterId, className, value);
             } else {
-                return new Data(adapterId, tmp.substring(pos1+1, tmp.length()));
+                return new Data(adapterId, tmp.substring(pos1 + 1, tmp.length()));
             }
+        } else if (str.startsWith("displayedView")) {
+            String id = str.substring(str.indexOf("=") + 1);
+            return new DisplayedView(id);
         } else {
             throw new RuntimeException("Unknown subject - " + str);
         }

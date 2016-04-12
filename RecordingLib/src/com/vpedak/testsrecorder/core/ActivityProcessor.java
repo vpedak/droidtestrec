@@ -96,10 +96,15 @@ public class ActivityProcessor {
         processTouch(view);
 
 
-        if (view instanceof ViewPager) {
-            ViewPager viewPager = (ViewPager) view;
-            processViewPager(viewPager);
+        try {
+            if (view instanceof ViewPager) {
+                ViewPager viewPager = (ViewPager) view;
+                processViewPager(viewPager);
+            }
+        } catch (NoClassDefFoundError e) {
+            // ViewPager is not used in this project, ignore this
         }
+
 
         if (view instanceof EditText) {
             processTextView((TextView) view);
@@ -310,6 +315,9 @@ public class ActivityProcessor {
     private String generateSubjectDescription(Subject subject) {
         if (subject instanceof com.vpedak.testsrecorder.core.events.View) {
             com.vpedak.testsrecorder.core.events.View view = (com.vpedak.testsrecorder.core.events.View) subject;
+            return " with id " + view.getId();
+        } else if (subject instanceof DisplayedView) {
+            DisplayedView view = (DisplayedView) subject;
             return " with id "+view.getId();
         } else if (subject instanceof  ParentView) {
             ParentView view = (ParentView) subject;
@@ -541,13 +549,14 @@ public class ActivityProcessor {
     private Subject checkIdDuplication(String viewId, View view) {
         if (view.getParent() != null && view.getParent() instanceof View &&
                 view.getParent().getParent() != null && view.getParent().getParent() instanceof ViewGroup) {
-            String parentId = resolveId(((View) view.getParent()).getId());
+            ViewGroup grandParentView = (ViewGroup) view.getParent().getParent();
 
-            if (parentId != null) {
-                ViewGroup grandParentView = (ViewGroup) view.getParent().getParent();
-
-                if (isIdDuplicated(grandParentView, view.getId(), new IntegerHolder())) {
+            if (isIdDuplicated(grandParentView, view.getId(), new IntegerHolder())) {
+                String parentId = resolveId(((View) view.getParent()).getId());
+                if (parentId != null) {
                     return new ParentIdView(parentId, viewId);
+                } else if (isInsideViewPager(view)) {
+                    return new DisplayedView(viewId);
                 }
             }
         }
@@ -580,6 +589,22 @@ public class ActivityProcessor {
 
         return num.value > 1;
     }
+
+    private boolean isInsideViewPager(View view) {
+        try {
+            ViewParent parent = view.getParent();
+            while (parent != null) {
+                if (parent instanceof ViewPager) {
+                    return true;
+                }
+                parent = parent.getParent();
+            }
+        } catch (NoClassDefFoundError e) {
+            // ViewPager is not used in this project, ignore this
+        }
+        return false;
+    }
+
 
     @Nullable
     public String resolveId(int id) {
