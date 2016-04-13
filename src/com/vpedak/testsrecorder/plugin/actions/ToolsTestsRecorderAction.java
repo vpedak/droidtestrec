@@ -4,6 +4,7 @@ import com.android.tools.idea.gradle.parser.BuildFileKey;
 import com.android.tools.idea.gradle.parser.BuildFileStatement;
 import com.android.tools.idea.gradle.parser.Dependency;
 import com.android.tools.idea.gradle.parser.GradleBuildFile;
+import com.android.tools.idea.gradle.project.GradleProjectImporter;
 import com.intellij.execution.ExecutionManager;
 import com.intellij.execution.RunManager;
 import com.intellij.execution.configurations.ConfigurationFactory;
@@ -14,8 +15,12 @@ import com.intellij.ide.util.PropertiesComponent;
 import com.intellij.notification.*;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.application.AccessToken;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.application.Result;
+import com.intellij.openapi.application.WriteAction;
 import com.intellij.openapi.command.CommandProcessor;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.options.ShowSettingsUtil;
@@ -39,6 +44,7 @@ import com.vpedak.testsrecorder.plugin.ui.ModulesComboBoxModel;
 import com.vpedak.testsrecorder.plugin.ui.PluginConfiguration;
 import org.jetbrains.android.dom.manifest.Activity;
 import org.jetbrains.android.facet.AndroidFacet;
+import org.jetbrains.annotations.NotNull;
 
 import javax.swing.*;
 import javax.swing.border.Border;
@@ -71,7 +77,6 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
     private EventsList eventsList;
     private ExecutionChecker executionChecker;
     private volatile ToolWindow toolWindow;
-    private GradleBuildFile buildFile;
     private String jarPath;
     private Project project;
     private VirtualFile testVirtualFile;
@@ -80,6 +85,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
     private JLabel label;
     private SimpleToolWindowPanel panel;
     private long uniqueId;
+    private Module currentModule;
 
     public ToolsTestsRecorderAction() {
         super("Android Tests _Recorder");
@@ -130,14 +136,14 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
 
             ModuleManager moduleManager = ModuleManager.getInstance(project);
             Module[] modules = moduleManager.getModules();
-            Module currentModule = null;
+            Module module = null;
             VirtualFile virtualFile = (VirtualFile) event.getData(PlatformDataKeys.VIRTUAL_FILE);
             if (virtualFile != null) {
-                currentModule = com.intellij.openapi.roots.ProjectRootManager.getInstance(project).getFileIndex().getModuleForFile(virtualFile);
+                module = com.intellij.openapi.roots.ProjectRootManager.getInstance(project).getFileIndex().getModuleForFile(virtualFile);
             }
             this.recButton.setEnabled(false);
 
-            this.moduleBoxModel = new ModulesComboBoxModel(modules, currentModule);
+            this.moduleBoxModel = new ModulesComboBoxModel(modules, module);
             ComboBox modList = new ComboBox(this.moduleBoxModel);
             modList.addActionListener(new AbstractAction() {
                 public void actionPerformed(ActionEvent e) {
@@ -150,7 +156,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             }
             JLabel modLabel = new JLabel("Module: ", SwingConstants.RIGHT);
             Border border = modLabel.getBorder();
-            Border margin = new EmptyBorder(0,15,0,5);
+            Border margin = new EmptyBorder(0, 15, 0, 5);
             modLabel.setBorder(new CompoundBorder(border, margin));
             toolBar.add(modLabel);
             toolBar.add(modList);
@@ -164,12 +170,12 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             });
             final JLabel activityLabel = new JLabel("Activity: ", SwingConstants.RIGHT);
             border = activityLabel.getBorder();
-            margin = new EmptyBorder(0,15,0,5);
+            margin = new EmptyBorder(0, 15, 0, 5);
             activityLabel.setBorder(new CompoundBorder(border, margin));
             toolBar.add(activityLabel);
             toolBar.add(this.activitiesList);
 
-            fillActivities(currentModule == null ? null : new ModulesComboBoxModel.ModuleWrapper(currentModule));
+            fillActivities(module == null ? null : new ModulesComboBoxModel.ModuleWrapper(module));
 
             JButton helpButton = new JButton(IconLoader.getIcon("icons/help.png"));
             helpButton.setToolTipText("Help");
@@ -180,11 +186,11 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             });
             toolBar.add(helpButton);
 
-            KeyboardFocusManager keyManager=KeyboardFocusManager.getCurrentKeyboardFocusManager();
+            KeyboardFocusManager keyManager = KeyboardFocusManager.getCurrentKeyboardFocusManager();
             keyManager.addKeyEventDispatcher(new KeyEventDispatcher() {
                 @Override
                 public boolean dispatchKeyEvent(KeyEvent e) {
-                    if(e.getID()==KeyEvent.KEY_PRESSED && e.getKeyCode()==112){ // F1
+                    if (e.getID() == KeyEvent.KEY_PRESSED && e.getKeyCode() == 112) { // F1
                         if (toolWindow.isActive()) {
                             openHelpWindow();
                             return true;
@@ -254,7 +260,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
     public void showNewVersionAvailable(String version) {
         final JPanel tmp = new JPanel(new VerticalLayout(5));
         tmp.setBorder(new EmptyBorder(10, 10, 20, 10));
-        JLabel label1 = new JLabel("<html> New version "+version+" of Android Test Recorder is available <a href=\"\">click here</a> to install.</html>");
+        JLabel label1 = new JLabel("<html> New version " + version + " of Android Test Recorder is available <a href=\"\">click here</a> to install.</html>");
         label1.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -276,6 +282,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
         panel.add(tmp, "South");
         panel.repaint();
     }
+
     private void fillActivities(ModulesComboBoxModel.ModuleWrapper module) {
         List<Activity> activities = Collections.emptyList();
         Activity selected = null;
@@ -320,41 +327,40 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             this.executionChecker.getDescriptor().getProcessHandler().destroyProcess();
         }
 
-        if (this.buildFile != null) {
-            final List<BuildFileStatement> dependencies = this.buildFile.getDependencies();
-            final Dependency dependency = findDepRecord(dependencies);
-            if (dependency != null) {
-                final CountDownLatch latch = new CountDownLatch(1);
-                CommandProcessor.getInstance().executeCommand(this.project, new Runnable() {
-                    public void run() {
-                        dependencies.remove(dependency);
-                        ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                            public void run() {
-                                ToolsTestsRecorderAction.this.buildFile.setValue(BuildFileKey.DEPENDENCIES, dependencies);
-                                latch.countDown();
-                            }
-                        });
-                    }
-                }, null, null);
-                try {
-                    latch.await(5, TimeUnit.SECONDS);
-                } catch (InterruptedException e) {
-                    ; // ignore
+        AccessToken token = WriteAction.start();
+        try {
+            final GradleBuildFile buildFile = GradleBuildFile.get(currentModule);
+
+            if (buildFile != null) {
+                final List<BuildFileStatement> dependencies = buildFile.getDependencies();
+                final Dependency dependency = findDepRecord(dependencies);
+                if (dependency != null) {
+                    dependencies.remove(dependency);
+                    new WriteCommandAction<Void>(project, "Test Recorder Stop", buildFile.getPsiFile()) {
+                        @Override
+                        protected void run(@NotNull Result<Void> result) throws Throwable {
+                            buildFile.setValue(BuildFileKey.DEPENDENCIES, dependencies);
+                        }
+                    }.execute();
                 }
             }
-        }
-        if (this.testVirtualFile != null) {
-            ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                public void run() {
-                    try {
-                        ToolsTestsRecorderAction.this.testVirtualFile.delete(null);
-                    } catch (IOException e) {
-                        Messages.showErrorDialog(ToolsTestsRecorderAction.this.project, "Failed to delete file " + ToolsTestsRecorderAction.this.testVirtualFile.getCanonicalPath(), "Error");
-                        e.printStackTrace();
+
+            if (this.testVirtualFile != null) {
+                ApplicationManager.getApplication().runWriteAction(new Runnable() {
+                    public void run() {
+                        try {
+                            ToolsTestsRecorderAction.this.testVirtualFile.delete(null);
+                        } catch (IOException e) {
+                            Messages.showErrorDialog(ToolsTestsRecorderAction.this.project, "Failed to delete file " + ToolsTestsRecorderAction.this.testVirtualFile.getCanonicalPath(), "Error");
+                            e.printStackTrace();
+                        }
                     }
-                }
-            });
+                });
+            }
+        } finally {
+            token.finish();
         }
+        GradleProjectImporter.getInstance().requestProjectSync(project, null);
 
         if (eventReader != null) {
             eventReader.stop();
@@ -364,73 +370,73 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
     private void record(AnActionEvent event) {
         project = ((Project) event.getData(PlatformDataKeys.PROJECT));
 
-        Module module = ((ModulesComboBoxModel.ModuleWrapper) this.moduleBoxModel.getSelected()).getModule();
+        currentModule = ((ModulesComboBoxModel.ModuleWrapper) this.moduleBoxModel.getSelected()).getModule();
 
-        this.buildFile = GradleBuildFile.get(module);
-        final List<BuildFileStatement> dependencies = this.buildFile.getDependencies();
+        final String packageName;
+        PsiFile psiFile;
 
-        boolean espressoFound = false;
-        for (BuildFileStatement statement : dependencies) {
-            if ((statement instanceof Dependency)) {
-                Dependency dependency = (Dependency) statement;
-                if ((dependency.type == Dependency.Type.EXTERNAL) && (dependency.scope == com.android.tools.idea.gradle.parser.Dependency.Scope.ANDROID_TEST_COMPILE) && (dependency.data != null) && (dependency.data.toString().startsWith("com.android.support.test.espresso:espresso-core"))) {
-                    espressoFound = true;
-                    break;
-                }
-            }
-        }
-        if (!espressoFound) {
-            Messages.showErrorDialog(this.project, "<html>Failed to find dependencies for Espresso. You must set up Espresso as defined at <a href='http://developer.android.com/training/testing/ui-testing/espresso-testing.html#setup'>http://developer.android.com/training/testing/ui-testing/espresso-testing.html#setup</a></html>", "Error");
-            this.recButton.setText(RECORD);
-            this.recButton.setIcon(IconLoader.getIcon("icons/rec.png"));
-            return;
-        }
+        AccessToken token = WriteAction.start();
+        try {
+            final GradleBuildFile buildFile = GradleBuildFile.get(currentModule);
 
-        Dependency dependency = findDepRecord(dependencies);
-        if (dependency == null) {
-            final CountDownLatch latch = new CountDownLatch(1);
-            CommandProcessor.getInstance().executeCommand(this.project, new Runnable() {
-                public void run() {
-                    dependencies.add(new Dependency(com.android.tools.idea.gradle.parser.Dependency.Scope.COMPILE, Dependency.Type.FILES, ToolsTestsRecorderAction.this.jarPath));
-                    ApplicationManager.getApplication().runWriteAction(new Runnable() {
-                        public void run() {
-                            ToolsTestsRecorderAction.this.buildFile.setValue(BuildFileKey.DEPENDENCIES, dependencies);
-                            latch.countDown();
-                        }
-                    });
-                }
-            }, null, null);
-            try {
-                latch.await(5, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                ; // ignore
-            }
-        }
+            final List<BuildFileStatement> dependencies = buildFile.getDependencies();
 
-        uniqueId = System.currentTimeMillis();
-
-        Activity activity = ((ActivitiesComboBoxModel.ActivityWrapper) this.activitiesBoxModel.getSelected()).getActivity();
-        final PsiClass activityClass = (PsiClass) activity.getActivityClass().getValue();
-        com.intellij.psi.PsiManager manager = com.intellij.psi.PsiManager.getInstance(this.project);
-        PsiFile psiFile = activityClass.getContainingFile();
-        final PsiDirectory psiDirectory = psiFile.getContainingDirectory();
-        final String packageName = ((com.intellij.psi.PsiJavaFile) activityClass.getContainingFile()).getPackageName();
-        ApplicationManager.getApplication().runWriteAction(new Runnable() {
-            public void run() {
-                try {
-                    PsiFile testFile = psiDirectory.findFile(TEST_FILE_NAME);
-                    if (testFile == null) {
-                        testFile = psiDirectory.createFile(TEST_FILE_NAME);
+            boolean espressoFound = false;
+            for (BuildFileStatement statement : dependencies) {
+                if ((statement instanceof Dependency)) {
+                    Dependency dependency = (Dependency) statement;
+                    if ((dependency.type == Dependency.Type.EXTERNAL) && (dependency.scope == com.android.tools.idea.gradle.parser.Dependency.Scope.ANDROID_TEST_COMPILE) && (dependency.data != null) && (dependency.data.toString().startsWith("com.android.support.test.espresso:espresso-core"))) {
+                        espressoFound = true;
+                        break;
                     }
-                    ToolsTestsRecorderAction.this.testVirtualFile = testFile.getVirtualFile();
-                    com.intellij.openapi.vfs.VfsUtil.saveText(ToolsTestsRecorderAction.this.testVirtualFile,
-                            ToolsTestsRecorderAction.template.replace("{ACTIVITY}", activityClass.getName()).replace("{PACKAGE}", packageName).
-                                    replace("{CLASSNAME}", "AndrTestRec").replace("{ID}", String.valueOf(uniqueId)));
-                } catch (IOException e) {
-                    Messages.showErrorDialog(ToolsTestsRecorderAction.this.project, e.getMessage(), "Error");
                 }
             }
-        });
+            if (!espressoFound) {
+                Messages.showErrorDialog(this.project, "<html>Failed to find dependencies for Espresso. You must set up Espresso as defined at <a href='http://developer.android.com/training/testing/ui-testing/espresso-testing.html#setup'>http://developer.android.com/training/testing/ui-testing/espresso-testing.html#setup</a></html>", "Error");
+                this.recButton.setText(RECORD);
+                this.recButton.setIcon(IconLoader.getIcon("icons/rec.png"));
+                return;
+            }
+
+            Dependency dependency = findDepRecord(dependencies);
+            if (dependency == null) {
+                dependencies.add(new Dependency(com.android.tools.idea.gradle.parser.Dependency.Scope.COMPILE, Dependency.Type.FILES, ToolsTestsRecorderAction.this.jarPath));
+                new WriteCommandAction<Void>(project, "Test Recorder Start", buildFile.getPsiFile()) {
+                    @Override
+                    protected void run(@NotNull Result<Void> result) throws Throwable {
+                        buildFile.setValue(BuildFileKey.DEPENDENCIES, dependencies);
+                    }
+                }.execute();
+            }
+
+            uniqueId = System.currentTimeMillis();
+
+            Activity activity = ((ActivitiesComboBoxModel.ActivityWrapper) this.activitiesBoxModel.getSelected()).getActivity();
+            final PsiClass activityClass = (PsiClass) activity.getActivityClass().getValue();
+            com.intellij.psi.PsiManager manager = com.intellij.psi.PsiManager.getInstance(this.project);
+            psiFile = activityClass.getContainingFile();
+            final PsiDirectory psiDirectory = psiFile.getContainingDirectory();
+            packageName = ((com.intellij.psi.PsiJavaFile) activityClass.getContainingFile()).getPackageName();
+            ApplicationManager.getApplication().runWriteAction(new Runnable() {
+                public void run() {
+                    try {
+                        PsiFile testFile = psiDirectory.findFile(TEST_FILE_NAME);
+                        if (testFile == null) {
+                            testFile = psiDirectory.createFile(TEST_FILE_NAME);
+                        }
+                        ToolsTestsRecorderAction.this.testVirtualFile = testFile.getVirtualFile();
+                        com.intellij.openapi.vfs.VfsUtil.saveText(ToolsTestsRecorderAction.this.testVirtualFile,
+                                ToolsTestsRecorderAction.template.replace("{ACTIVITY}", activityClass.getName()).replace("{PACKAGE}", packageName).
+                                        replace("{CLASSNAME}", "AndrTestRec").replace("{ID}", String.valueOf(uniqueId)));
+                    } catch (IOException e) {
+                        Messages.showErrorDialog(ToolsTestsRecorderAction.this.project, e.getMessage(), "Error");
+                    }
+                }
+            });
+        } finally {
+            token.finish();
+        }
+
         RunManager runManager = RunManager.getInstance(this.project);
 
         ConfigurationFactory factory;
@@ -442,7 +448,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             factory = configurationType.getFactory();
             org.jetbrains.android.run.testing.AndroidTestRunConfiguration runConfiguration = new org.jetbrains.android.run.testing.AndroidTestRunConfiguration(this.project, factory);
             runConfiguration.setName(runConfigName);
-            runConfiguration.setModule(module);
+            runConfiguration.setModule(currentModule);
             runConfiguration.setTargetSelectionMode(org.jetbrains.android.run.TargetSelectionMode.SHOW_DIALOG);
             runConfiguration.TESTING_TYPE = 2;
             runConfiguration.CLASS_NAME = (packageName + "." + ANDR_TEST_CLASSNAME);
@@ -453,7 +459,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             factory = configurationType.getFactory();
             com.android.tools.idea.run.testing.AndroidTestRunConfiguration runConfiguration = new com.android.tools.idea.run.testing.AndroidTestRunConfiguration(this.project, factory);
             runConfiguration.setName(runConfigName);
-            runConfiguration.setModule(module);
+            runConfiguration.setModule(currentModule);
             runConfiguration.setTargetSelectionMode(com.android.tools.idea.run.TargetSelectionMode.SHOW_DIALOG);
             runConfiguration.TESTING_TYPE = 2;
             runConfiguration.CLASS_NAME = (packageName + "." + ANDR_TEST_CLASSNAME);
@@ -473,7 +479,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
         this.executionChecker = new ExecutionChecker(executionManager, runConfigName, this);
         new java.util.Timer().schedule(this.executionChecker, 200L, 200L);
 
-        eventsList.clear(project, module, psiFile);
+        eventsList.clear(project, currentModule, psiFile);
     }
 
     private Dependency findDepRecord(List<BuildFileStatement> dependencies) {
@@ -499,7 +505,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
 
         //Messages.showInfoMessage(s, "info");
 
-        s = s.substring(0, s.indexOf(".jar")+4);
+        s = s.substring(0, s.indexOf(".jar") + 4);
 
         String os = System.getProperty("os.name").toLowerCase();
         if (os.indexOf("win") >= 0) {
@@ -521,8 +527,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
     }
 
     public void testStarted() {
-        ApplicationManager.getApplication().invokeLater(new Runnable()
-        {
+        ApplicationManager.getApplication().invokeLater(new Runnable() {
             public void run() {
                 ToolsTestsRecorderAction.this.toolWindow.activate(null, true, true);
             }
