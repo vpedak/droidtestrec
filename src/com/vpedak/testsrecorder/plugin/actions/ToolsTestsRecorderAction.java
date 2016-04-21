@@ -452,6 +452,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             runConfiguration.setTargetSelectionMode(org.jetbrains.android.run.TargetSelectionMode.SHOW_DIALOG);
             runConfiguration.TESTING_TYPE = 2;
             runConfiguration.CLASS_NAME = (packageName + "." + ANDR_TEST_CLASSNAME);
+            runConfiguration.INSTRUMENTATION_RUNNER_CLASS = "android.support.test.runner.AndroidJUnitRunner";
             configuration = runConfiguration;
         } catch (NoClassDefFoundError e) {
             // for Android Studio more or equals them 1.5
@@ -463,6 +464,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             runConfiguration.setTargetSelectionMode(com.android.tools.idea.run.TargetSelectionMode.SHOW_DIALOG);
             runConfiguration.TESTING_TYPE = 2;
             runConfiguration.CLASS_NAME = (packageName + "." + ANDR_TEST_CLASSNAME);
+            runConfiguration.INSTRUMENTATION_RUNNER_CLASS = "android.support.test.runner.AndroidJUnitRunner";
             configuration = runConfiguration;
         }
 
