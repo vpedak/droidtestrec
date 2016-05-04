@@ -53,9 +53,11 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.HyperlinkEvent;
 import java.awt.*;
 import java.awt.event.*;
+import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -70,6 +72,7 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
     public static final String RECORD = "Record";
     public static final String STOP = "Stop";
     public static final String TOOLWINDOW_TITLE = "Android Tests Recorder";
+    public static final String GRADLE_BUILD_SAVED = "gradle.build.saved";
     private ModulesComboBoxModel moduleBoxModel;
     private ActivitiesComboBoxModel activitiesBoxModel;
     private ComboBox activitiesList;
@@ -331,20 +334,38 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
         try {
             final GradleBuildFile buildFile = GradleBuildFile.get(currentModule);
 
-            if (buildFile != null) {
-                final List<BuildFileStatement> dependencies = buildFile.getDependencies();
-                final Dependency dependency = findDepRecord(dependencies);
-                if (dependency != null) {
-                    dependencies.remove(dependency);
-                    new WriteCommandAction<Void>(project, "Test Recorder Stop", buildFile.getPsiFile()) {
-                        @Override
-                        protected void run(@NotNull Result<Void> result) throws Throwable {
-                            buildFile.setValue(BuildFileKey.DEPENDENCIES, dependencies);
-                        }
-                    }.execute();
+            final String buildFilePath = buildFile.getFile().getPath();
+            File buildF = new File(buildFilePath);
+            File dir = buildF.getParentFile();
+            File saved = new File(dir, GRADLE_BUILD_SAVED);
+            if (saved.exists()) {
+                // restore gradle build from saved file
+                final byte[] data = Files.readAllBytes(saved.toPath());
+
+                new WriteCommandAction<Void>(project, "Test Recorder Stop", buildFile.getPsiFile()) {
+                    @Override
+                    protected void run(@NotNull Result<Void> result) throws Throwable {
+                        buildFile.getFile().setBinaryContent(data);
+                    }
+                }.execute();
+
+                saved.delete();
+            } else {
+                // saved file not found, so simple remove dependency
+                if (buildFile != null) {
+                    final List<BuildFileStatement> dependencies = buildFile.getDependencies();
+                    final Dependency dependency = findDepRecord(dependencies);
+                    if (dependency != null) {
+                        dependencies.remove(dependency);
+                        new WriteCommandAction<Void>(project, "Test Recorder Stop", buildFile.getPsiFile()) {
+                            @Override
+                            protected void run(@NotNull Result<Void> result) throws Throwable {
+                                buildFile.setValue(BuildFileKey.DEPENDENCIES, dependencies);
+                            }
+                        }.execute();
+                    }
                 }
             }
-
             if (this.testVirtualFile != null) {
                 ApplicationManager.getApplication().runWriteAction(new Runnable() {
                     public void run() {
@@ -357,6 +378,8 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
                     }
                 });
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         } finally {
             token.finish();
         }
@@ -378,6 +401,13 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
         AccessToken token = WriteAction.start();
         try {
             final GradleBuildFile buildFile = GradleBuildFile.get(currentModule);
+
+            // save a copy of gradle build file
+            String buildFilePath = buildFile.getFile().getPath();
+            File buildF = new File(buildFilePath);
+            File dir = buildF.getParentFile();
+            File saved = new File(dir, GRADLE_BUILD_SAVED);
+            Files.copy(buildF.toPath(), saved.toPath());
 
             final List<BuildFileStatement> dependencies = buildFile.getDependencies();
 
@@ -433,6 +463,10 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
                     }
                 }
             });
+        } catch (IOException e) {
+            e.printStackTrace();
+            Messages.showErrorDialog(this.project, "IO error : " + e.toString(), "Error");
+            return;
         } finally {
             token.finish();
         }
