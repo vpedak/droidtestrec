@@ -1,7 +1,7 @@
 <idea-plugin version="2">
   <id>com.vpedak.testsrecorder.plugin.id</id>
   <name>Android Tests Recorder</name>
-  <version>0.9.4</version>
+  <version>0.9.5</version>
   <vendor email="info@droidtestlab.com" url="http://www.droidtestlab.com">Droid Test Lab</vendor>
 
   <description><![CDATA[
