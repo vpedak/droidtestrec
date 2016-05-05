@@ -16,6 +16,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.webkit.WebView;
 import android.widget.*;
 
 import com.vpedak.testsrecorder.core.events.*;
@@ -83,6 +84,11 @@ public class ActivityProcessor {
     }
 
     private void processView(View view) {
+        if (view instanceof WebView) {
+            // skip web view processing since it is not supported yet
+            return;
+        }
+
         View tst = allViews.putIfAbsent(view, view);
 
         if (tst != null) {
