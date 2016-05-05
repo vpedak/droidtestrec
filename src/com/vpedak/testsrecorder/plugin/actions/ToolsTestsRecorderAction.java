@@ -407,6 +407,9 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
             File buildF = new File(buildFilePath);
             File dir = buildF.getParentFile();
             File saved = new File(dir, GRADLE_BUILD_SAVED);
+            if (saved.exists()) {
+                saved.delete();
+            }
             Files.copy(buildF.toPath(), saved.toPath());
 
             final List<BuildFileStatement> dependencies = buildFile.getDependencies();
