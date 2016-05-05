@@ -19,7 +19,6 @@ import com.intellij.openapi.application.AccessToken;
 import com.intellij.openapi.application.ApplicationManager;
 import com.intellij.openapi.application.Result;
 import com.intellij.openapi.application.WriteAction;
-import com.intellij.openapi.command.CommandProcessor;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.module.ModuleManager;
@@ -61,8 +60,6 @@ import java.nio.file.Files;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.AnAction implements TestListener {
     public static final String TOOL_WINDOW_ID = "vpedak.tests.recorder,id";
@@ -425,7 +422,8 @@ public class ToolsTestsRecorderAction extends com.intellij.openapi.actionSystem.
                 }
             }
             if (!espressoFound) {
-                Messages.showErrorDialog(this.project, "<html>Failed to find dependencies for Espresso. You must set up Espresso as defined at <a href='http://developer.android.com/training/testing/ui-testing/espresso-testing.html#setup'>http://developer.android.com/training/testing/ui-testing/espresso-testing.html#setup</a></html>", "Error");
+                Messages.showErrorDialog(this.project, "<html>Failed to find dependencies for Espresso. You must set up Espresso as defined at " +
+                        "<a href='http://developer.android.com/training/testing/start/index.html#config-instrumented-tests'>http://developer.android.com/training/testing/start/index.html#config-instrumented-tests</a></html>", "Error");
                 this.recButton.setText(RECORD);
                 this.recButton.setIcon(IconLoader.getIcon("icons/rec.png"));
                 return;
